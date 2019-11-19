@@ -4,7 +4,9 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"log"
+	"path/filepath"
 )
 
 func (p *Parser) parse() {
@@ -13,14 +15,46 @@ func (p *Parser) parse() {
 	var pkgs map[string]*ast.Package
 	var err error
 
-	if pkgs, err = parser.ParseDir(fset, p.BaseDir, nil, parser.ParseComments); err != nil {
-		log.Panicf("unable to parse base directory: %s\n", err.Error())
+	pkgIndex := make(map[string]string)
+
+	var scanDir func(path string)
+
+	scanDir = func(path string) {
+		contents, err := ioutil.ReadDir(path)
+
+		if err != nil {
+			log.Panicf("unable to read directory %s: %s\n", path, err.Error())
+		}
+
+		for _, it := range contents {
+			if it.IsDir() {
+				scanDir(filepath.Join(path, it.Name()))
+			}
+		}
+
+		if pkgs, err = parser.ParseDir(fset, path, nil, parser.PackageClauseOnly); err != nil {
+			log.Panicf("unable to scan directory %s: %s\n", path, err.Error())
+		} else {
+			for k := range pkgs {
+				pkgIndex[k] = path
+			}
+		}
 	}
 
-	for k := range pkgs {
-		for fk := range pkgs[k].Files {
-			p.wg.Add(1)
-			go p.parseFile(pkgs[k].Files[fk])
+	scanDir(p.BaseDir)
+
+	p.pkgIndex = pkgIndex
+
+	for _, v := range pkgIndex {
+		if pkgs, err = parser.ParseDir(fset, v, nil, parser.ParseComments); err != nil {
+			log.Panicf("unable to parse base directory: %s\n", err.Error())
+		}
+
+		for pk := range pkgs {
+			for fk := range pkgs[pk].Files {
+				p.wg.Add(1)
+				go p.parseFile(pkgs[pk].Files[fk])
+			}
 		}
 	}
 }
@@ -83,9 +117,32 @@ func (p *Parser) parseFile(file *ast.File) {
 
 func (p *Parser) parseConst(spec *ast.ValueSpec) {
 	c := &Constant{
-		Name:  spec.Names[0].Name,
-		Type:  parseType(spec.Type),
-		Value: spec.Values[0].(*ast.BasicLit).Value,
+		Name: spec.Names[0].Name,
+	}
+
+	if spec.Type != nil {
+		c.Type = parseType(spec.Type)
+		c.Value = spec.Values[0].(*ast.BasicLit).Value
+	} else {
+		switch spec.Values[0].(type) {
+		case *ast.CallExpr:
+			if val, ok := spec.Values[0].(*ast.CallExpr).Args[0].(*ast.BasicLit); ok {
+				c.Type = parseTypeFromKind(val.Kind)
+				c.Value = val.Value
+			} else {
+				panic("Unhandled case")
+			}
+		case *ast.BasicLit:
+			v := spec.Values[0].(*ast.BasicLit)
+			c.Type = parseTypeFromKind(v.Kind)
+			c.Value = v.Value
+		default:
+			panic("Unhandled case")
+		}
+	}
+
+	if c.Value == "" {
+		panic("Unhandled case")
 	}
 
 	p.cMtx.Lock()
@@ -157,7 +214,29 @@ func (p *Parser) parseTypeSpec(spec *ast.TypeSpec) {
 			Type: t,
 		})
 		return
+	case *ast.InterfaceType:
+		return
+	case *ast.SelectorExpr:
+		st := spec.Type.(*ast.SelectorExpr)
+		t := "any"
+		if xv, ok := st.X.(*ast.Ident); ! ok {
+			panic("unhandled case")
+		} else {
+			p.pMtx.Lock()
+			defer p.pMtx.Unlock()
+			if _, ok := p.pkgIndex[xv.Name]; ok {
+				t = st.Sel.Name
+			}
+		}
+
+		p.tMtx.Lock()
+		defer p.tMtx.Unlock()
+		p.types = append(p.types, &TypeDef{
+			Name: spec.Name.Name,
+			Type: t,
+		})
+		return
 	default:
-		panic("??")
+		panic(spec.Type)
 	}
 }

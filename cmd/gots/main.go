@@ -28,6 +28,7 @@ func main() {
 				p := parser.New(&parser.Config{
 					BaseDir:     ctx.String("dir"),
 					OutFileName: o,
+					Subdirs:     ctx.Bool("sub-dir"),
 				})
 
 				p.Run()
@@ -43,13 +44,21 @@ func main() {
 			},
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:  "dir, d",
-					Usage: "Base directory to lookup exportable definitions",
-					Value: wd,
+					Name:    "dir",
+					Aliases: []string{"d"},
+					Usage:   "Base directory to lookup exportable definitions",
+					Value:   wd,
 				},
 				&cli.StringFlag{
-					Name:  "outfile, o",
-					Usage: "Output file. If not specified, stdout will be used.",
+					Name:    "outfile",
+					Aliases: []string{"o"},
+					Usage:   "Output file. If not specified, stdout will be used.",
+				},
+				&cli.BoolFlag{
+					Name:    "sub-dirs",
+					Aliases: []string{"s"},
+					Usage:   "Scan sub-directories as well",
+					Value:   false,
 				},
 			},
 		},

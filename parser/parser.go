@@ -27,6 +27,9 @@ type Parser struct {
 	cMtx      sync.RWMutex
 	constants []*Constant
 
+	pMtx     sync.Mutex
+	pkgIndex map[string]string
+
 	tsw *typescript.Writer
 }
 
