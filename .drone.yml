@@ -33,6 +33,7 @@ steps:
   when:
     event: push
   commands:
+  - apk add gcc musl-dev
   - go test -mod vendor ./parser/...
   - go test -mod vendor ./typescript/...
 
@@ -96,6 +97,6 @@ steps:
     - sha512
 ---
 kind: signature
-hmac: 9e5607122e0c8c32b6ef04ed52809e1f68250fa37798aba3bc005e7b959cc43c
+hmac: a7894949813f0d5a3280dc0264284b2b152c2453ffceb58b8d38e999459d4dd8
 
 ...
