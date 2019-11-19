@@ -1,0 +1,6 @@
+.git
+.idea
+bin
+.drone.yml
+.gitignore
+LICENSE.md
