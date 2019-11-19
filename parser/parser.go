@@ -1,8 +1,11 @@
 package parser
 
 import (
-	"go/ast"
+	"errors"
+	"fmt"
 	"github.com/zyra/gots/typescript"
+	"go/ast"
+	"io/ioutil"
 	"log"
 	"path/filepath"
 	"sync"
@@ -90,4 +93,16 @@ func (p *Parser) GenerateTS() {
 
 func (p *Parser) String() string {
 	return p.tsw.String()
+}
+
+func (p *Parser) WriteToFile() error {
+	if p.OutFileName == "" {
+		return errors.New("output filename was not specified")
+	}
+
+	return ioutil.WriteFile(p.OutFileName, []byte(p.String()), 0644)
+}
+
+func (p *Parser) Print() {
+	fmt.Print(p.String())
 }
