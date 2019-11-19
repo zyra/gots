@@ -33,8 +33,8 @@ steps:
   when:
     event: push
   commands:
-  - go test parser/...
-  - go test typescript/...
+  - go test -mod vendor ./parser/...
+  - go test -mod vendor ./typescript/...
 
 - name: Build docker image
   <<: *docker-step
@@ -96,6 +96,6 @@ steps:
     - sha512
 ---
 kind: signature
-hmac: 1ac3fd755d534777c63b6a7b9028fe8764727da568925c6333a27bda73f14995
+hmac: 9e5607122e0c8c32b6ef04ed52809e1f68250fa37798aba3bc005e7b959cc43c
 
 ...
