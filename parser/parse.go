@@ -155,7 +155,7 @@ func (p *Parser) parseStruct(spec *ast.TypeSpec) {
 	var s *ast.StructType
 	var ok bool
 
-	if s, ok = spec.Type.(*ast.StructType); ! ok {
+	if s, ok = spec.Type.(*ast.StructType); !ok {
 		return
 	}
 
@@ -173,13 +173,13 @@ func (p *Parser) parseStruct(spec *ast.TypeSpec) {
 
 	for _, f := range s.Fields.List {
 		if f.Tag == nil || f.Tag.Value == "" {
-			return
+			continue
 		}
 
 		tag, err := parseTags(f.Tag.Value)
 
 		if err != nil {
-			return
+			continue
 		}
 
 		if tag.Type == "" {
@@ -207,6 +207,11 @@ func (p *Parser) parseTypeSpec(spec *ast.TypeSpec) {
 		p.parseStruct(spec)
 	case *ast.Ident:
 		t := parseType(spec.Type)
+
+		if spec.Name.Name == t {
+			return
+		}
+
 		p.tMtx.Lock()
 		defer p.tMtx.Unlock()
 		p.types = append(p.types, &TypeDef{
@@ -219,7 +224,7 @@ func (p *Parser) parseTypeSpec(spec *ast.TypeSpec) {
 	case *ast.SelectorExpr:
 		st := spec.Type.(*ast.SelectorExpr)
 		t := "any"
-		if xv, ok := st.X.(*ast.Ident); ! ok {
+		if xv, ok := st.X.(*ast.Ident); !ok {
 			panic("unhandled case")
 		} else {
 			p.pMtx.Lock()
