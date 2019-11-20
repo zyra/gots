@@ -234,6 +234,10 @@ func (p *Parser) parseTypeSpec(spec *ast.TypeSpec) {
 			}
 		}
 
+		if spec.Name.Name == t {
+			return
+		}
+
 		p.tMtx.Lock()
 		defer p.tMtx.Unlock()
 		p.types = append(p.types, &TypeDef{
