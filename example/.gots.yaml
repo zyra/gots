@@ -2,13 +2,25 @@ output:
   mode: packages
   path: ./generated
 
+rootDir: "./pkg"
+
+# all types default to true
+# this is here for documentation purposes only
+types:
+  interfaces: true
+  variables: true
+  constants: true
+  aliases: true
+  structs: true
+  enums: true
+
 include:
   - "*.go"
 
 # global transformation to apply to all files
 # this applies only to properties that do not have a conflicting gots tag
 transforms:
-  # basic transformation that converts a [10]byte to a string
-  - type: "[10]byte"
+  # basic transformation that converts a primitive.ObjectID to a string
+  - type: "primitive.ObjectID"
     target: "string"
     optional: true

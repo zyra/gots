@@ -20,8 +20,11 @@ func (t *parserTestSuite) SetupSuite() {
 		t.FailNow("unable to get working directory")
 	} else {
 		t.config = &Config{
-			RootDir:     filepath.Join(wd, "test_fixture"),
-			OutFileName: "test_result.ts",
+			RootDir: filepath.Join(wd, "test_fixture"),
+			Output: Output{
+				Mode:        AIO,
+				AIOFileName: "test_results.ts",
+			},
 		}
 	}
 }
