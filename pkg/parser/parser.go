@@ -3,7 +3,7 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"github.com/zyra/gots/typescript"
+	"github.com/zyra/gots/pkg/statement"
 	"go/ast"
 	"io/ioutil"
 	"log"
@@ -30,21 +30,21 @@ type Parser struct {
 	pMtx     sync.Mutex
 	pkgIndex map[string]string
 
-	tsw *typescript.Writer
+	tsw *statement.Writer
 }
 
 func New(config *Config) *Parser {
-	if !filepath.IsAbs(config.BaseDir) {
-		if d, err := filepath.Abs(config.BaseDir); err != nil {
+	if !filepath.IsAbs(config.RootDir) {
+		if d, err := filepath.Abs(config.RootDir); err != nil {
 			log.Panicf("cannot convert base directory to absolute path: %s\n", err.Error())
 		} else {
-			config.BaseDir = d
+			config.RootDir = d
 		}
 	}
 
 	return &Parser{
 		Config: config,
-		tsw:    typescript.NewWriter(),
+		tsw:    statement.NewWriter(),
 	}
 }
 
@@ -64,7 +64,7 @@ func (p *Parser) GenerateTS() {
 	defer p.tMtx.RUnlock()
 
 	for _, it := range p.types {
-		p.tsw.Export().Type(it.Name, typescript.Literal(it.Type))
+		p.tsw.Export().Type(it.Name, statement.Literal(it.Type))
 	}
 
 	var lp int
@@ -76,13 +76,13 @@ func (p *Parser) GenerateTS() {
 			continue
 		}
 
-		properties := make([]*typescript.Statement, lp, lp)
+		properties := make([]*statement.Statement, lp, lp)
 
 		for i, itt := range it.Properties {
 			if itt.Optional {
-				properties[i] = typescript.OptionalProperty(itt.Name, itt.Type)
+				properties[i] = statement.OptionalProperty(itt.Name, itt.Type)
 			} else {
-				properties[i] = typescript.Property(itt.Name, itt.Type)
+				properties[i] = statement.Property(itt.Name, itt.Type)
 			}
 		}
 
@@ -90,7 +90,7 @@ func (p *Parser) GenerateTS() {
 	}
 
 	for _, it := range p.constants {
-		p.tsw.Export().Const(typescript.Property(it.Name, it.Type), typescript.Literal(it.Value))
+		p.tsw.Export().Const(statement.Property(it.Name, it.Type), statement.Literal(it.Value))
 	}
 }
 

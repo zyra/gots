@@ -19,7 +19,7 @@ func (t *parserTestSuite) SetupSuite() {
 		t.FailNow("unable to get working directory")
 	} else {
 		t.config = &Config{
-			BaseDir:     filepath.Join(wd, "test_fixture"),
+			RootDir:     filepath.Join(wd, "test_fixture"),
 			OutFileName: "test_result.ts",
 		}
 	}
@@ -41,14 +41,14 @@ func (t *parserTestSuite) TestRun() {
 `, out)
 }
 
-func TestParseTags(t *testing.T) {
+func TestParseTagsOld(t *testing.T) {
 	a := assert.New(t)
 	var tagVal string
-	var pt *tag
+	var pt *Tag
 	var err error
 
 	tagVal = "`json:\"name\""
-	pt, err = parseTags(tagVal)
+	pt, err = ParseTag(tagVal)
 
 	if !a.NoError(err) {
 		return
@@ -59,7 +59,7 @@ func TestParseTags(t *testing.T) {
 	a.Equal(false, pt.Optional)
 
 	tagVal = "`json:\"name,omitempty\""
-	pt, err = parseTags(tagVal)
+	pt, err = ParseTag(tagVal)
 
 	if !a.NoError(err) {
 		return
@@ -70,7 +70,7 @@ func TestParseTags(t *testing.T) {
 	a.Equal(true, pt.Optional)
 
 	tagVal = "`json:\"name\" gots:\"type:string\"`"
-	pt, err = parseTags(tagVal)
+	pt, err = ParseTag(tagVal)
 
 	if !a.NoError(err) {
 		return
@@ -81,7 +81,7 @@ func TestParseTags(t *testing.T) {
 	a.Equal(false, pt.Optional)
 
 	tagVal = "`json:\"name\" gots:\"name:nom,type:string\"`"
-	pt, err = parseTags(tagVal)
+	pt, err = ParseTag(tagVal)
 
 	if !a.NoError(err) {
 		return
@@ -92,7 +92,7 @@ func TestParseTags(t *testing.T) {
 	a.Equal(false, pt.Optional)
 
 	tagVal = "`json:\"name\" gots:\"name:nom,type:string,optional\"`"
-	pt, err = parseTags(tagVal)
+	pt, err = ParseTag(tagVal)
 
 	if !a.NoError(err) {
 		return
@@ -103,7 +103,7 @@ func TestParseTags(t *testing.T) {
 	a.Equal(true, pt.Optional)
 
 	tagVal = "`json:\"-\" gots:\"type:string\"`"
-	pt, err = parseTags(tagVal)
+	pt, err = ParseTag(tagVal)
 
 	if !a.Error(err) {
 		return
@@ -112,7 +112,7 @@ func TestParseTags(t *testing.T) {
 	a.Equal(errJsonIgnored, err)
 
 	tagVal = "`bson:\"id\" gots:\"type:string\"`"
-	pt, err = parseTags(tagVal)
+	pt, err = ParseTag(tagVal)
 
 	if !a.Error(err) {
 		return

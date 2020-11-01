@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/urfave/cli/v2"
-	"github.com/zyra/gots/parser"
+	"github.com/zyra/gots/pkg/parser"
 	"log"
 	"os"
 )
@@ -26,9 +26,9 @@ func main() {
 				o := ctx.String("outfile")
 
 				p := parser.New(&parser.Config{
-					BaseDir:     ctx.String("dir"),
+					RootDir:     ctx.String("dir"),
 					OutFileName: o,
-					Subdirs:     ctx.Bool("sub-dir"),
+					Recursive:   ctx.Bool("sub-dir"),
 				})
 
 				p.Run()

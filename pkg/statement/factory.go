@@ -1,35 +1,39 @@
-package typescript
+package statement
 
+// Create a statement with the provided statements as it's children
 func Group(children ...*Statement) *Statement {
-	return newStatementWithChildren(children)
+	return NewStatementWithChildren(children)
 }
 
+// Create a typescript interface with the provided name and properties
 func Interface(name string, properties ...*Statement) *Statement {
 	b := Block(properties...)
 
-	b.separator = ";\n  "
+	b.Separator = ";\n  "
 
 	if len(properties) > 0 {
-		properties[len(properties)-1].suffix += ";"
+		properties[len(properties)-1].Suffix += ";"
 	}
 
-	s := newStatementWithChildren([]*Statement{b})
-	s.prefix = "interface "
-	s.value = name
+	s := NewStatementWithChildren([]*Statement{b})
+	s.Prefix = "interface "
+	s.Value = name
 	return s
 }
 
+// Create a block statement with the provided statements joined by a new line
 func Block(content ...*Statement) *Statement {
-	s := newStatementWithChildren(content)
-	s.prefix = " {\n  "
-	s.suffix = "\n}\n"
-	s.separator = "\n  "
+	s := NewStatementWithChildren(content)
+	s.Prefix = " {\n  "
+	s.Suffix = "\n}\n"
+	s.Separator = "\n  "
 	return s
 }
 
+// Create a typescript property with the provided name and type
 func Property(name string, propType string) *Statement {
 	c := Colon()
-	c.suffix = " "
+	c.Suffix = " "
 	return Group(
 		Literal(name),
 		c,
@@ -39,7 +43,7 @@ func Property(name string, propType string) *Statement {
 
 func OptionalProperty(name string, propType string) *Statement {
 	c := Colon()
-	c.suffix = " "
+	c.Suffix = " "
 	return Group(
 		Literal(name),
 		QuestionMark(),
@@ -49,47 +53,47 @@ func OptionalProperty(name string, propType string) *Statement {
 }
 
 func Colon() *Statement {
-	return newStatementWithValue(":")
+	return NewStatementWithValue(":")
 }
 
 func ReturnType(name string) *Statement {
-	s := newStatementWithValue(name)
-	s.prefix = ": "
+	s := NewStatementWithValue(name)
+	s.Prefix = ": "
 	return s
 }
 
 func Dot(propName string) *Statement {
-	s := newStatementWithValue(propName)
-	s.prefix = "."
+	s := NewStatementWithValue(propName)
+	s.Prefix = "."
 	return s
 }
 
 func Call(params ...*Statement) *Statement {
-	s := newStatementWithChildren(params)
-	s.prefix = "("
-	s.suffix = ")"
+	s := NewStatementWithChildren(params)
+	s.Prefix = "("
+	s.Suffix = ")"
 	return s
 }
 
 func Async() *Statement {
-	return newStatementWithValue("async ")
+	return NewStatementWithValue("async ")
 }
 
 func Await() *Statement {
-	return newStatementWithValue("await ")
+	return NewStatementWithValue("await ")
 }
 
 func Function(name string) *Statement {
-	s := newStatementWithValue(name)
-	s.prefix = "function "
+	s := NewStatementWithValue(name)
+	s.Prefix = "function "
 	return s
 }
 
 func Params(params ...*Statement) *Statement {
-	s := newStatementWithChildren(params)
-	s.separator = ", "
-	s.prefix = "("
-	s.suffix = ")"
+	s := NewStatementWithChildren(params)
+	s.Separator = ", "
+	s.Prefix = "("
+	s.Suffix = ")"
 	return s
 }
 
@@ -98,11 +102,11 @@ func Param(name, paramType string) *Statement {
 }
 
 func Arrow() *Statement {
-	return newStatementWithValue("=>")
+	return NewStatementWithValue("=>")
 }
 
 func ArrowFunction(params []*Statement, content []*Statement) *Statement {
-	return newStatementWithChildren([]*Statement{
+	return NewStatementWithChildren([]*Statement{
 		Params(params...),
 		Arrow(),
 		Block(content...),
@@ -110,39 +114,39 @@ func ArrowFunction(params []*Statement, content []*Statement) *Statement {
 }
 
 func Class(name string) *Statement {
-	s := newStatementWithValue(name)
-	s.prefix = "class "
+	s := NewStatementWithValue(name)
+	s.Prefix = "class "
 	return s
 }
 
 func Export() *Statement {
-	return newStatementWithValue("export ")
+	return NewStatementWithValue("export ")
 }
 
 func Import() *Statement {
-	return newStatementWithValue("import ")
+	return NewStatementWithValue("import ")
 }
 
 func As(typeName string) *Statement {
-	s := newStatementWithValue(typeName)
-	s.prefix = "as "
+	s := NewStatementWithValue(typeName)
+	s.Prefix = "as "
 	return s
 }
 
 func Namespace(name string) *Statement {
-	s := newStatementWithValue(name)
-	s.prefix = "namespace "
+	s := NewStatementWithValue(name)
+	s.Prefix = "namespace "
 	return s
 }
 
 func Literal(value string) *Statement {
-	return newStatementWithValue(value)
+	return NewStatementWithValue(value)
 }
 
 func Return(value *Statement) *Statement {
-	s := newStatementWithChildren([]*Statement{value})
-	s.prefix = "return "
-	s.suffix = ";"
+	s := NewStatementWithChildren([]*Statement{value})
+	s.Prefix = "return "
+	s.Suffix = ";"
 	return s
 }
 
@@ -152,9 +156,9 @@ func QuestionMark() *Statement {
 
 func Const(prop *Statement, value *Statement) *Statement {
 	g := Group(prop, value)
-	g.prefix = "const "
-	g.separator = " = "
-	g.suffix = ";\n"
+	g.Prefix = "const "
+	g.Separator = " = "
+	g.Suffix = ";\n"
 	return g
 }
 
@@ -163,8 +167,8 @@ func Type(name string, value *Statement) *Statement {
 		Literal(name),
 		value,
 	)
-	g.prefix = "type "
-	g.separator = " = "
-	g.suffix = ";\n"
+	g.Prefix = "type "
+	g.Separator = " = "
+	g.Suffix = ";\n"
 	return g
 }

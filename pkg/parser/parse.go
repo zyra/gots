@@ -41,7 +41,7 @@ func (p *Parser) parse() {
 		}
 	}
 
-	scanDir(p.BaseDir)
+	scanDir(p.RootDir)
 
 	p.pkgIndex = pkgIndex
 
@@ -121,20 +121,20 @@ func (p *Parser) parseConst(spec *ast.ValueSpec) {
 	}
 
 	if spec.Type != nil {
-		c.Type = parseType(spec.Type)
+		c.Type = ParseTagType(spec.Type)
 		c.Value = spec.Values[0].(*ast.BasicLit).Value
 	} else {
 		switch spec.Values[0].(type) {
 		case *ast.CallExpr:
 			if val, ok := spec.Values[0].(*ast.CallExpr).Args[0].(*ast.BasicLit); ok {
-				c.Type = parseTypeFromKind(val.Kind)
+				c.Type = ParseTypeFromToken(val.Kind)
 				c.Value = val.Value
 			} else {
 				panic("Unhandled case")
 			}
 		case *ast.BasicLit:
 			v := spec.Values[0].(*ast.BasicLit)
-			c.Type = parseTypeFromKind(v.Kind)
+			c.Type = ParseTypeFromToken(v.Kind)
 			c.Value = v.Value
 		default:
 			panic("Unhandled case")
@@ -176,14 +176,14 @@ func (p *Parser) parseStruct(spec *ast.TypeSpec) {
 			continue
 		}
 
-		tag, err := parseTags(f.Tag.Value)
+		tag, err := ParseTag(f.Tag.Value)
 
 		if err != nil {
 			continue
 		}
 
 		if tag.Type == "" {
-			tag.Type = parseType(f.Type)
+			tag.Type = ParseTagType(f.Type)
 		}
 
 		props = append(props, &Property{
@@ -206,7 +206,7 @@ func (p *Parser) parseTypeSpec(spec *ast.TypeSpec) {
 	case *ast.StructType:
 		p.parseStruct(spec)
 	case *ast.Ident:
-		t := parseType(spec.Type)
+		t := ParseTagType(spec.Type)
 
 		if spec.Name.Name == t {
 			return

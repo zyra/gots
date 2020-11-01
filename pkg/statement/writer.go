@@ -1,4 +1,4 @@
-package typescript
+package statement
 
 import (
 	"bytes"

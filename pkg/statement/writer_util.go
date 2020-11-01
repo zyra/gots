@@ -1,4 +1,4 @@
-package typescript
+package statement
 
 // TODO automatically generate
 

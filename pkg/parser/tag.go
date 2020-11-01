@@ -8,19 +8,25 @@ import (
 	"strings"
 )
 
-type tag struct {
-	Name, Type string
-	Optional   bool
+type Tag struct {
+	// Tag name
+	Name string
+
+	// Tag type
+	Type string
+
+	// Whether the tagged property is optional
+	Optional bool
 }
 
 var jsonTagRgx = regexp.MustCompile(`(?i)json:"([a-z0-9_-]+),?(omitempty)?"`)
 var gotsTagRgx = regexp.MustCompile(`(?i)gots:"([a-z0-9_,:\[\]]+)"`)
 var gotsInnerTagRgx = regexp.MustCompile(`(?i)(name|type|optional):?([a-z0-9_\[\]]+)?`)
 
-var errJsonTagNotPresent = errors.New("json tag not present")
+var errJsonTagNotPresent = errors.New("json Tag not present")
 var errJsonIgnored = errors.New("field is ignored")
 
-func parseTags(val string) (*tag, error) {
+func ParseTag(val string) (*Tag, error) {
 	m := jsonTagRgx.FindAllStringSubmatch(val, -1)
 
 	if len(m) == 0 {
@@ -33,7 +39,7 @@ func parseTags(val string) (*tag, error) {
 		return nil, errJsonIgnored
 	}
 
-	t := &tag{
+	t := &Tag{
 		Name:     sm[1],
 		Optional: sm[2] == "omitempty",
 	}
@@ -59,7 +65,31 @@ func parseTags(val string) (*tag, error) {
 	return t, nil
 }
 
-func parseTypeFromKind(t token.Token) string {
+type TagType string
+
+const (
+	TagTypeString  TagType = "string"
+	TagTypeBool    TagType = "bool"
+	TagTypeNumber  TagType = "number"
+	TagTypeUnknown TagType = "unknown"
+)
+
+func (t TagType) String() string {
+	return string(t)
+}
+
+func TagTypeFromToken(t token.Token) TagType {
+	switch t {
+	case token.INT, token.FLOAT:
+		return TagTypeNumber
+	case token.STRING:
+		return TagTypeString
+	default:
+		return TagTypeUnknown
+	}
+}
+
+func ParseTypeFromToken(t token.Token) string {
 	switch t {
 	case token.INT, token.FLOAT:
 		return "number"
@@ -70,7 +100,20 @@ func parseTypeFromKind(t token.Token) string {
 	}
 }
 
-func parseTypeFromName(n string) string {
+func TagTypeFromName(n string) TagType {
+	switch n {
+	case "string":
+		return TagTypeString
+	case "uint8", "uint16", "uint32", "uint64", "uint", "int8", "int16", "int32", "int64", "int", "float32", "float64":
+		return TagTypeNumber
+	case "bool":
+		return TagTypeBool
+	default:
+		return TagTypeUnknown
+	}
+}
+
+func ParseTagTypeFromName(n string) string {
 	switch n {
 	case "string":
 		return "string"
@@ -83,18 +126,17 @@ func parseTypeFromName(n string) string {
 	}
 }
 
-func parseType(t ast.Expr) string {
-	switch t.(type) {
+func ParseTagType(t ast.Expr) string {
+	switch v := t.(type) {
 	case *ast.Ident:
-		return parseTypeFromName(t.(*ast.Ident).Name)
+		return TagTypeFromName(v.Name).String()
 	case *ast.StarExpr:
-		return parseType(t.(*ast.StarExpr).X)
+		return ParseTagType(v.X)
 	case *ast.MapType:
-		tt := t.(*ast.MapType)
-		k, v := parseType(tt.Key), parseType(tt.Value)
-		return strings.Join([]string{"{[key:", k, "]:", v, "}"}, "")
+		key, value := ParseTagType(v.Key), ParseTagType(v.Value)
+		return strings.Join([]string{"{[key:", key, "]:", value, "}"}, "")
 	case *ast.ArrayType:
-		return strings.Join([]string{parseType(t.(*ast.ArrayType).Elt), "[]"}, "")
+		return strings.Join([]string{ParseTagType(v.Elt), "[]"}, "")
 	case *ast.SelectorExpr, *ast.InterfaceType:
 		return "any"
 	default:
