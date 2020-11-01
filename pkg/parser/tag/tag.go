@@ -2,7 +2,6 @@ package tag
 
 import (
 	"errors"
-	"fmt"
 )
 
 type Tag struct {
@@ -23,7 +22,7 @@ func ParseTag(val string) (*Tag, error) {
 	t := Tag{}
 	j, err := ParseJsonTag(val)
 	if err != nil && err != ErrJsonTagNotPresent {
-		return nil, fmt.Errorf("failed to parse json tag: %v", err)
+		return nil, err
 	} else if j != nil && j.Inline {
 		return nil, ErrPropertyInlined
 	} else if j != nil {

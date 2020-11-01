@@ -6,7 +6,7 @@ import (
 )
 
 // Default image type
-var DefaultImageType = ImageTypeRaw
+const DefaultImageType = ImageTypeRaw
 
 // Image object
 type Image struct {

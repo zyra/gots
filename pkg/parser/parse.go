@@ -1,7 +1,7 @@
 package parser
 
 import (
-	tag2 "github.com/zyra/gots/pkg/parser/tag"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-func (p *Parser) parse() {
+func (p *Parser) parse() error {
 	fset := token.NewFileSet()
 
 	var pkgs map[string]*ast.Package
@@ -48,220 +48,41 @@ func (p *Parser) parse() {
 
 	for _, v := range pkgIndex {
 		if pkgs, err = parser.ParseDir(fset, v, nil, parser.ParseComments); err != nil {
-			log.Panicf("unable to parse base directory: %s\n", err.Error())
+			return fmt.Errorf("unable to parse base directory: %s\n", err.Error())
 		}
 
-		for pk := range pkgs {
-			for fk := range pkgs[pk].Files {
-				p.wg.Add(1)
-				go p.parseFile(pkgs[pk].Files[fk])
-			}
-		}
-	}
-}
+		p.wg.Add(len(pkgs))
 
-func (p *Parser) parseFile(file *ast.File) {
-	defer p.wg.Done()
+		for _, pv := range pkgs {
+			pkg := NewPackage(pv)
+			p.pkgs = append(p.pkgs, pkg)
 
-	ast.Inspect(file, func(node ast.Node) bool {
-		if node == nil {
-			return true
-		}
-
-		switch node.(type) {
-		case *ast.File, *ast.Ident:
-			return true
-
-		case *ast.FuncDecl, *ast.CommentGroup:
-			return false
-
-		case *ast.GenDecl:
-			n := node.(*ast.GenDecl)
-
-			if n.Specs == nil {
-				return false
-			}
-
-			switch n.Tok {
-			case token.CONST:
-				// TODO handle constants with no explicit values (numeric, iota+n ..etc)
-				// 		it will need to be handled with access to all specs + list index..etc
-				// 		since we need to check other props to know where the counter starts
-				for i := range n.Specs {
-					if spec, ok := n.Specs[i].(*ast.ValueSpec); ok {
-						p.wg.Add(1)
-						go func() {
-							defer p.wg.Done()
-							p.parseConst(spec)
-						}()
-					}
-				}
-
-			case token.TYPE:
-				for i := range n.Specs {
-					if spec, ok := n.Specs[i].(*ast.TypeSpec); ok {
-						p.wg.Add(1)
-						go func() {
-							defer p.wg.Done()
-							p.parseTypeSpec(spec)
-						}()
-					}
-				}
-			}
-
-			return false
-		}
-
-		return true
-	})
-}
-
-func (p *Parser) parseConst(spec *ast.ValueSpec) {
-	cName := spec.Names[0].Name
-
-	if !ast.IsExported(cName) {
-		return
-	}
-
-	c := &Constant{
-		Name: cName,
-	}
-
-	if len(spec.Values) == 0 {
-		log.Panicf("%s doesn't have a value", c.Name)
-	}
-
-	if spec.Type != nil {
-		c.Type = tag2.ParseType(spec.Type)
-
-		if val, ok := spec.Values[0].(*ast.BasicLit); ok {
-			c.Value = val.Value
-		} else {
-			log.Panicf("%s doesn't have a value", c.Name)
-		}
-	} else {
-		switch spec.Values[0].(type) {
-		case *ast.CallExpr:
-			if val, ok := spec.Values[0].(*ast.CallExpr).Args[0].(*ast.BasicLit); ok {
-				c.Type = tag2.ParseTypeFromToken(val.Kind)
-				c.Value = val.Value
-			} else {
-				panic("Unhandled case")
-			}
-		case *ast.BasicLit:
-			v := spec.Values[0].(*ast.BasicLit)
-			c.Type = tag2.ParseTypeFromToken(v.Kind)
-			c.Value = v.Value
-		default:
-			panic("Unhandled case")
+			go func(pkg *Package) {
+				defer p.wg.Done()
+				pkg.Parse()
+			}(pkg)
 		}
 	}
 
-	if c.Value == "" {
-		panic("Unhandled case")
+	p.wg.Wait()
+
+	for _, pkg := range p.pkgs {
+		for _, file := range pkg.files {
+			p.files = append(p.files, file)
+		}
+		for _, c := range pkg.constants {
+			p.constants = append(p.constants, c)
+		}
+		for _, it := range pkg.interfaces {
+			p.interfaces = append(p.interfaces, it)
+		}
+		for _, st := range pkg.structs {
+			p.structs = append(p.structs, st)
+		}
+		for _, t := range pkg.types {
+			p.types = append(p.types, t)
+		}
 	}
 
-	p.cMtx.Lock()
-	defer p.cMtx.Unlock()
-
-	p.constants = append(p.constants, c)
-}
-
-func (p *Parser) parseStruct(spec *ast.TypeSpec) {
-	var s *ast.StructType
-	var ok bool
-
-	if s, ok = spec.Type.(*ast.StructType); !ok {
-		return
-	}
-
-	if s.Fields == nil {
-		return
-	}
-
-	nf := s.Fields.NumFields()
-
-	if nf == 0 {
-		return
-	}
-
-	props := make([]*Property, 0, nf)
-
-	for _, f := range s.Fields.List {
-		if f.Tag == nil || f.Tag.Value == "" {
-			continue
-		}
-
-		tag, err := tag2.ParseTag(f.Tag.Value)
-
-		if err != nil {
-			continue
-		}
-
-		if tag.Type == "" {
-			tag.Type = tag2.ParseType(f.Type)
-		}
-
-		props = append(props, &Property{
-			Name:     tag.Name,
-			Type:     tag.Type,
-			Optional: tag.Optional,
-		})
-	}
-
-	p.iMtx.Lock()
-	defer p.iMtx.Unlock()
-	p.interfaces = append(p.interfaces, &Interface{
-		Name:       spec.Name.Name,
-		Properties: props,
-	})
-}
-
-func (p *Parser) parseTypeSpec(spec *ast.TypeSpec) {
-	switch spec.Type.(type) {
-	case *ast.StructType:
-		p.parseStruct(spec)
-	case *ast.Ident:
-		t := tag2.ParseType(spec.Type)
-
-		if spec.Name.Name == t {
-			return
-		}
-
-		p.tMtx.Lock()
-		defer p.tMtx.Unlock()
-		p.types = append(p.types, &TypeDef{
-			Name: spec.Name.Name,
-			Type: t,
-		})
-		return
-	case *ast.InterfaceType:
-		return
-	case *ast.SelectorExpr:
-		st := spec.Type.(*ast.SelectorExpr)
-		t := "any"
-		if xv, ok := st.X.(*ast.Ident); !ok {
-			panic("unhandled case")
-		} else {
-			p.pMtx.Lock()
-			defer p.pMtx.Unlock()
-			if _, ok := p.pkgIndex[xv.Name]; ok {
-				t = st.Sel.Name
-			}
-		}
-
-		if spec.Name.Name == t {
-			return
-		}
-
-		p.tMtx.Lock()
-		defer p.tMtx.Unlock()
-		p.types = append(p.types, &TypeDef{
-			Name: spec.Name.Name,
-			Type: t,
-		})
-		return
-	default:
-		panic(spec.Type)
-	}
+	return nil
 }

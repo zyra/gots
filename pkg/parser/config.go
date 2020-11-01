@@ -8,7 +8,7 @@ type TypesConfig struct {
 	// Variable declarations that have default values
 	Variables bool `json:"variables"`
 
-	// Constant declarations
+	// Const declarations
 	Constants bool `json:"constants"`
 
 	// Type aliases

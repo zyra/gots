@@ -1,10 +1,8 @@
 package parser
 
 import (
-	"errors"
 	"fmt"
 	"github.com/zyra/gots/pkg/statement"
-	"go/ast"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -14,20 +12,26 @@ import (
 type Parser struct {
 	*Config
 
-	files []*ast.File
+	wg *sync.WaitGroup
 
-	wg sync.WaitGroup
-
-	iMtx       sync.RWMutex
+	iMtx       *sync.RWMutex
 	interfaces []*Interface
 
-	tMtx  sync.RWMutex
-	types []*TypeDef
+	tMtx  *sync.RWMutex
+	types []*TypeAlias
 
-	cMtx      sync.RWMutex
-	constants []*Constant
+	cMtx      *sync.RWMutex
+	constants []*Const
 
-	pMtx     sync.Mutex
+	sMtx    *sync.RWMutex
+	structs []*Struct
+
+	pMtx *sync.RWMutex
+	pkgs []*Package
+
+	fMtx  *sync.RWMutex
+	files []*File
+
 	pkgIndex map[string]string
 
 	tsw *statement.Writer
@@ -43,8 +47,20 @@ func New(config *Config) *Parser {
 	}
 
 	return &Parser{
-		Config: config,
-		tsw:    statement.NewWriter(),
+		Config:     config,
+		wg:         new(sync.WaitGroup),
+		iMtx:       new(sync.RWMutex),
+		interfaces: make([]*Interface, 0),
+		tMtx:       new(sync.RWMutex),
+		types:      make([]*TypeAlias, 0),
+		cMtx:       new(sync.RWMutex),
+		constants:  make([]*Const, 0),
+		sMtx:       new(sync.RWMutex),
+		structs:    make([]*Struct, 0),
+		pMtx:       new(sync.RWMutex),
+		pkgs:       make([]*Package, 0),
+		pkgIndex:   make(map[string]string),
+		tsw:        statement.NewWriter(),
 	}
 }
 
@@ -64,12 +80,12 @@ func (p *Parser) GenerateTS() {
 	defer p.tMtx.RUnlock()
 
 	for _, it := range p.types {
-		p.tsw.Export().Type(it.Name, statement.Literal(it.Type))
+		p.tsw.Export().Type(it.Name, statement.Literal(it.Type.Name))
 	}
 
 	var lp int
 
-	for _, it := range p.interfaces {
+	for _, it := range p.structs {
 		lp = len(it.Properties)
 
 		if lp == 0 {
@@ -80,9 +96,9 @@ func (p *Parser) GenerateTS() {
 
 		for i, itt := range it.Properties {
 			if itt.Optional {
-				properties[i] = statement.OptionalProperty(itt.Name, itt.Type)
+				properties[i] = statement.OptionalProperty(itt.Name, itt.Type.Name)
 			} else {
-				properties[i] = statement.Property(itt.Name, itt.Type)
+				properties[i] = statement.Property(itt.Name, itt.Type.Name)
 			}
 		}
 
@@ -90,7 +106,10 @@ func (p *Parser) GenerateTS() {
 	}
 
 	for _, it := range p.constants {
-		p.tsw.Export().Const(statement.Property(it.Name, it.Type), statement.Literal(it.Value))
+		if it.Type == nil {
+			it.Type = &Type{}
+		}
+		p.tsw.Export().Const(statement.Property(it.Name, it.Type.Name), statement.Literal(it.Value))
 	}
 }
 
@@ -99,11 +118,11 @@ func (p *Parser) String() string {
 }
 
 func (p *Parser) WriteToFile() error {
-	if p.OutFileName == "" {
-		return errors.New("output filename was not specified")
-	}
+	//if p.OutFileName == "" {
+	//	return errors.New("output filename was not specified")
+	//}
 
-	return ioutil.WriteFile(p.OutFileName, []byte(p.String()), 0644)
+	return ioutil.WriteFile(p.Output.AIOFileName, []byte(p.String()), 0644)
 }
 
 func (p *Parser) Print() {
