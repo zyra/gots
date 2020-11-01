@@ -1,0 +1,14 @@
+output:
+  mode: packages
+  path: ./generated
+
+include:
+  - "*.go"
+
+# global transformation to apply to all files
+# this applies only to properties that do not have a conflicting gots tag
+transforms:
+  # basic transformation that converts a [10]byte to a string
+  - type: "[10]byte"
+    target: "string"
+    optional: true
