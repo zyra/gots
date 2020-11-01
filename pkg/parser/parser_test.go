@@ -3,6 +3,7 @@ package parser
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/zyra/gots/pkg/parser/tag"
 	"os"
 	"path/filepath"
 	"testing"
@@ -44,11 +45,11 @@ func (t *parserTestSuite) TestRun() {
 func TestParseTagsOld(t *testing.T) {
 	a := assert.New(t)
 	var tagVal string
-	var pt *Tag
+	var pt *tag.Tag
 	var err error
 
 	tagVal = "`json:\"name\""
-	pt, err = ParseTag(tagVal)
+	pt, err = tag.ParseTag(tagVal)
 
 	if !a.NoError(err) {
 		return
@@ -59,7 +60,7 @@ func TestParseTagsOld(t *testing.T) {
 	a.Equal(false, pt.Optional)
 
 	tagVal = "`json:\"name,omitempty\""
-	pt, err = ParseTag(tagVal)
+	pt, err = tag.ParseTag(tagVal)
 
 	if !a.NoError(err) {
 		return
@@ -70,7 +71,7 @@ func TestParseTagsOld(t *testing.T) {
 	a.Equal(true, pt.Optional)
 
 	tagVal = "`json:\"name\" gots:\"type:string\"`"
-	pt, err = ParseTag(tagVal)
+	pt, err = tag.ParseTag(tagVal)
 
 	if !a.NoError(err) {
 		return
@@ -81,7 +82,7 @@ func TestParseTagsOld(t *testing.T) {
 	a.Equal(false, pt.Optional)
 
 	tagVal = "`json:\"name\" gots:\"name:nom,type:string\"`"
-	pt, err = ParseTag(tagVal)
+	pt, err = tag.ParseTag(tagVal)
 
 	if !a.NoError(err) {
 		return
@@ -92,7 +93,7 @@ func TestParseTagsOld(t *testing.T) {
 	a.Equal(false, pt.Optional)
 
 	tagVal = "`json:\"name\" gots:\"name:nom,type:string,optional\"`"
-	pt, err = ParseTag(tagVal)
+	pt, err = tag.ParseTag(tagVal)
 
 	if !a.NoError(err) {
 		return
@@ -103,22 +104,22 @@ func TestParseTagsOld(t *testing.T) {
 	a.Equal(true, pt.Optional)
 
 	tagVal = "`json:\"-\" gots:\"type:string\"`"
-	pt, err = ParseTag(tagVal)
+	pt, err = tag.ParseTag(tagVal)
 
 	if !a.Error(err) {
 		return
 	}
 
-	a.Equal(errJsonIgnored, err)
+	a.Equal(tag.ErrJsonIgnored, err)
 
 	tagVal = "`bson:\"id\" gots:\"type:string\"`"
-	pt, err = ParseTag(tagVal)
+	pt, err = tag.ParseTag(tagVal)
 
 	if !a.Error(err) {
 		return
 	}
 
-	a.Equal(errJsonTagNotPresent, err)
+	a.Equal(tag.ErrJsonTagNotPresent, err)
 }
 
 func TestParser(t *testing.T) {

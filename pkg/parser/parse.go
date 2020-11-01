@@ -1,6 +1,7 @@
 package parser
 
 import (
+	tag2 "github.com/zyra/gots/pkg/parser/tag"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -116,25 +117,40 @@ func (p *Parser) parseFile(file *ast.File) {
 }
 
 func (p *Parser) parseConst(spec *ast.ValueSpec) {
+	cName := spec.Names[0].Name
+
+	if !ast.IsExported(cName) {
+		return
+	}
+
 	c := &Constant{
-		Name: spec.Names[0].Name,
+		Name: cName,
+	}
+
+	if len(spec.Values) == 0 {
+		log.Panicf("%s doesn't have a value", c.Name)
 	}
 
 	if spec.Type != nil {
-		c.Type = ParseTagType(spec.Type)
-		c.Value = spec.Values[0].(*ast.BasicLit).Value
+		c.Type = tag2.ParseType(spec.Type)
+
+		if val, ok := spec.Values[0].(*ast.BasicLit); ok {
+			c.Value = val.Value
+		} else {
+			log.Panicf("%s doesn't have a value", c.Name)
+		}
 	} else {
 		switch spec.Values[0].(type) {
 		case *ast.CallExpr:
 			if val, ok := spec.Values[0].(*ast.CallExpr).Args[0].(*ast.BasicLit); ok {
-				c.Type = ParseTypeFromToken(val.Kind)
+				c.Type = tag2.ParseTypeFromToken(val.Kind)
 				c.Value = val.Value
 			} else {
 				panic("Unhandled case")
 			}
 		case *ast.BasicLit:
 			v := spec.Values[0].(*ast.BasicLit)
-			c.Type = ParseTypeFromToken(v.Kind)
+			c.Type = tag2.ParseTypeFromToken(v.Kind)
 			c.Value = v.Value
 		default:
 			panic("Unhandled case")
@@ -176,14 +192,14 @@ func (p *Parser) parseStruct(spec *ast.TypeSpec) {
 			continue
 		}
 
-		tag, err := ParseTag(f.Tag.Value)
+		tag, err := tag2.ParseTag(f.Tag.Value)
 
 		if err != nil {
 			continue
 		}
 
 		if tag.Type == "" {
-			tag.Type = ParseTagType(f.Type)
+			tag.Type = tag2.ParseType(f.Type)
 		}
 
 		props = append(props, &Property{
@@ -206,7 +222,7 @@ func (p *Parser) parseTypeSpec(spec *ast.TypeSpec) {
 	case *ast.StructType:
 		p.parseStruct(spec)
 	case *ast.Ident:
-		t := ParseTagType(spec.Type)
+		t := tag2.ParseType(spec.Type)
 
 		if spec.Name.Name == t {
 			return
