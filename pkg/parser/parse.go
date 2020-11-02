@@ -1,95 +1,66 @@
 package parser
 
 import (
-	"fmt"
 	"github.com/zyra/gots/pkg/parser/golang"
 	"github.com/zyra/gots/pkg/parser/reader"
 )
 
-func (p *Parser) parse() error {
+func (p *Parser) parse() ([]*reader.Package, error) {
 	r := golang.Reader{}
 	packages, err := r.Read(&reader.ReadConfig{
 		Dir:       p.RootDir,
 		Recursive: p.Recursive,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	fmt.Printf("package len is %d\n", len(packages))
+	for _, pkg := range packages {
+		if err := pkg.EachFile(func(f *reader.File) (bool, error) {
+			for _, iface := range f.Interfaces {
+				newProps := make([]*reader.Property, 0)
+				for _, prop := range iface.Properties {
+					if !prop.Inline {
+						newProps = append(newProps, prop)
+						continue
+					}
 
-	//fset := token.NewFileSet()
-	//
-	//var pkgs map[string]*ast.Package
-	//var err error
-	//
-	//pkgIndex := make(map[string]string)
-	//
-	//var scanFiles func(path string)
-	//
-	//scanFiles = func(path string) {
-	//	contents, err := ioutil.ReadDir(path)
-	//
-	//	if err != nil {
-	//		log.Panicf("unable to read directory %s: %s\n", path, err.Error())
-	//	}
-	//
-	//	for _, it := range contents {
-	//		if it.IsDir() {
-	//			scanFiles(filepath.Join(path, it.Name()))
-	//		}
-	//	}
-	//
-	//	if pkgs, err = parser.ParseDir(fset, path, nil, parser.PackageClauseOnly); err != nil {
-	//		log.Panicf("unable to scan directory %s: %s\n", path, err.Error())
-	//	} else {
-	//		for k := range pkgs {
-	//			pkgIndex[k] = path
-	//		}
-	//	}
-	//}
-	//
-	//scanFiles(p.RootDir)
-	//
-	//p.pkgIndex = pkgIndex
-	//
-	//for _, v := range pkgIndex {
-	//	if pkgs, err = parser.ParseDir(fset, v, nil, parser.ParseComments); err != nil {
-	//		return fmt.Errorf("unable to parse base directory: %s\n", err.Error())
-	//	}
-	//
-	//	p.wg.Add(len(pkgs))
-	//
-	//	for _, pv := range pkgs {
-	//		pkg := NewPackage(pv)
-	//		p.pkgs = append(p.pkgs, pkg)
-	//
-	//		go func(pkg *PkgReader) {
-	//			defer p.wg.Done()
-	//			pkg.Parse()
-	//		}(pkg)
-	//	}
-	//}
-	//
-	//p.wg.Wait()
-	//
-	//for _, pkg := range p.pkgs {
-	//	for _, file := range pkg.files {
-	//		p.files = append(p.files, file)
-	//	}
-	//	for _, c := range pkg.constants {
-	//		p.constants = append(p.constants, c)
-	//	}
-	//	for _, it := range pkg.interfaces {
-	//		p.interfaces = append(p.interfaces, it)
-	//	}
-	//	for _, st := range pkg.structs {
-	//		p.structs = append(p.structs, st)
-	//	}
-	//	for _, t := range pkg.types {
-	//		p.types = append(p.types, t)
-	//	}
-	//}
+					fromPkg := prop.Type.From
+					if fromPkg == "" {
+						if err := pkg.EachInterface(func(f *reader.File, iface *reader.Interface) (bool, error) {
+							if iface.Name != prop.Type.Name {
+								return true, nil
+							}
+							newProps = append(newProps, iface.Properties...)
+							return false, nil
+						}); err != nil {
+							return false, err
+						}
+					} else {
+						for _, pkg2 := range packages {
+							if pkg2.Name != fromPkg {
+								continue
+							}
 
-	return nil
+							if err := pkg2.EachInterface(func(f *reader.File, iface2 *reader.Interface) (bool, error) {
+								if iface2.Name != prop.Type.Name {
+									return true, nil
+								}
+								newProps = append(newProps, iface2.Properties...)
+								return false, nil
+							}); err != nil {
+								return false, err
+							}
+						}
+					}
+				}
+				iface.Properties = newProps
+			}
+			return true, nil
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	return packages, nil
 }

@@ -20,7 +20,7 @@ func TestTypeFromName(t *testing.T) {
 	a := assert.New(t)
 
 	tk := TypeFromName("Image")
-	a.Equal("image", tk.Name)
+	a.Equal("Image", tk.Name)
 }
 
 func TestTypeFromExpr(t *testing.T) {
@@ -66,8 +66,7 @@ func TestTypeFromExpr(t *testing.T) {
 		},
 	}
 	res = TypeFromExpr(expr)
-	a.NotNil(res.From)
-	a.Equal("primitive", res.From.Name)
+	a.Equal("primitive", res.From)
 	a.Equal("ObjectID", res.Name)
 
 	expr = &ast.InterfaceType{}

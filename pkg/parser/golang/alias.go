@@ -5,18 +5,11 @@ import (
 	"go/ast"
 )
 
-// Type alias options
-type TypeAlias struct {
-	reader.TypeAlias
-}
-
 // Parse Go type alias
-func ParseTypeAlias(spec *ast.TypeSpec) *TypeAlias {
+func ParseTypeAlias(spec *ast.TypeSpec) *reader.TypeAlias {
 	t := TypeFromExpr(spec.Type)
-	return &TypeAlias{
-		TypeAlias: reader.TypeAlias{
-			Name:        spec.Name.Name,
-			AliasedType: t,
-		},
+	return &reader.TypeAlias{
+		Name:        spec.Name.Name,
+		AliasedType: t,
 	}
 }

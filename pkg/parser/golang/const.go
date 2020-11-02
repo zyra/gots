@@ -1,49 +1,21 @@
 package golang
 
 import (
-	"errors"
 	"fmt"
 	"github.com/zyra/gots/pkg/parser/reader"
 	"go/ast"
 	"go/constant"
 )
 
-// Const options
-type Const struct {
-	reader.Constant
-}
-
-func evalBinaryExpr(expr *ast.BinaryExpr) (constant.Value, error) {
-	xLit, ok := expr.X.(*ast.BasicLit)
-	if !ok {
-		return constant.MakeUnknown(), errors.New("left operand is not BasicLit")
-	}
-
-	yLit, ok := expr.Y.(*ast.BasicLit)
-	if !ok {
-		return constant.MakeUnknown(), errors.New("right operand is not BasicLit")
-	}
-
-	x := evalBasicLit(xLit)
-	y := evalBasicLit(yLit)
-	return constant.BinaryOp(x, expr.Op, y), nil
-}
-
-func evalBasicLit(expr *ast.BasicLit) constant.Value {
-	return constant.MakeFromLiteral(expr.Value, expr.Kind, 0)
-}
-
-func ConstFromValueSpec(spec *ast.ValueSpec) (*Const, error) {
+func ConstFromValueSpec(spec *ast.ValueSpec) (*reader.Constant, error) {
 	cName := spec.Names[0].Name
 
 	if !ast.IsExported(cName) {
 		return nil, ErrNotExported
 	}
 
-	c := &Const{
-		Constant: reader.Constant{
-			Name: cName,
-		},
+	c := &reader.Constant{
+		Name: cName,
 	}
 
 	if len(spec.Values) == 0 {
@@ -56,20 +28,11 @@ func ConstFromValueSpec(spec *ast.ValueSpec) (*Const, error) {
 		case *ast.BasicLit:
 			c.Value = val.Value
 			return c, nil
-
-		case *ast.BinaryExpr:
-			vv, err := evalBinaryExpr(val)
-			if err != nil {
-				return nil, err
-			}
-			c.Value = vv.ExactString()
-
 		case *ast.Ident:
 			c.Value = constant.Make(val.Name).String()
-			fmt.Println("done")
 		}
 
-		return nil, fmt.Errorf("%s doesn't have a value", c.Name)
+		return nil, fmt.Errorf("%s doesn't have a value or is not supported", c.Name)
 	}
 
 	switch v := spec.Values[0].(type) {

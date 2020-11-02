@@ -7,17 +7,12 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
-	"sync"
 )
 
 type Parser struct {
 	*reader.Config
-
-	wg *sync.WaitGroup
-
 	pkgIndex map[string]string
-
-	tsw *statement.Writer
+	tsw      *statement.Writer
 }
 
 func New(config *reader.Config) *Parser {
@@ -31,50 +26,47 @@ func New(config *reader.Config) *Parser {
 
 	return &Parser{
 		Config:   config,
-		wg:       new(sync.WaitGroup),
 		pkgIndex: make(map[string]string),
 		tsw:      statement.NewWriter(),
 	}
 }
 
-func (p *Parser) Run() {
-	p.parse()
-	p.wg.Wait()
-}
+func (p *Parser) Run() error {
+	packages, err := p.parse()
+	if err != nil {
+		return err
+	}
 
-func (p *Parser) GenerateTS() {
-	//for _, it := range p.types {
-	//	p.tsw.Export().Type(it.Name, statement.Literal(it.Type.Name))
-	//}
-	//
-	//var lp int
-	//
-	//for _, it := range p.structs {
-	//	lp = len(it.Properties)
-	//
-	//	if lp == 0 {
-	//		continue
-	//	}
-	//
-	//	properties := make([]*statement.Statement, lp, lp)
-	//
-	//	for i, itt := range it.Properties {
-	//		if itt.Optional {
-	//			properties[i] = statement.OptionalProperty(itt.Name, itt.Type.Name)
-	//		} else {
-	//			properties[i] = statement.Property(itt.Name, itt.Type.Name)
-	//		}
-	//	}
-	//
-	//	p.tsw.Export().Interface(it.Name, properties...)
-	//}
-	//
-	//for _, it := range p.constants {
-	//	if it.Type == nil {
-	//		it.Type = &golang.Type{}
-	//	}
-	//	p.tsw.Export().Const(statement.Property(it.Name, it.Type.Name), statement.Literal(it.Value))
-	//}
+	for _, pkg := range packages {
+		pkg.EachTypeAlias(func(f *reader.File, t *reader.TypeAlias) (bool, error) {
+			p.tsw.Export().Type(t.Name, statement.Literal(t.AliasedType.TSType()))
+
+			return true, nil
+		})
+
+		pkg.EachInterface(func(f *reader.File, iface *reader.Interface) (bool, error) {
+			props := make([]*statement.Statement, 0)
+			for _, p := range iface.Properties {
+				var s *statement.Statement
+				if p.Optional {
+					s = statement.OptionalProperty(p.Name, p.Type.TSType())
+				} else {
+					s = statement.Property(p.Name, p.Type.TSType())
+				}
+				props = append(props, s)
+			}
+			p.tsw.Export().Interface(iface.Name, props...)
+
+			return true, nil
+		})
+
+		pkg.EachConstant(func(f *reader.File, c *reader.Constant) (bool, error) {
+			p.tsw.Export().Const(statement.Property(c.Name, c.Type.TSType()), statement.Literal(c.Value))
+			return true, nil
+		})
+	}
+
+	return nil
 }
 
 func (p *Parser) String() string {

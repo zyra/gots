@@ -7,7 +7,8 @@ import (
 	"go/token"
 )
 
-type Reader struct{}
+type Reader struct {
+}
 
 func (r *Reader) Read(rc *reader.ReadConfig) ([]*reader.Package, error) {
 	fSet := token.NewFileSet()
@@ -16,9 +17,9 @@ func (r *Reader) Read(rc *reader.ReadConfig) ([]*reader.Package, error) {
 		return nil, err
 	}
 
-	out := make([]*reader.Package, len(dirs))
+	out := make([]*reader.Package, 0)
 
-	for i, it := range dirs {
+	for _, it := range dirs {
 		pkgs, err := goparser.ParseDir(fSet, it, nil, goparser.ParseComments)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse file %v: %v", it, err)
@@ -29,7 +30,7 @@ func (r *Reader) Read(rc *reader.ReadConfig) ([]*reader.Package, error) {
 			if err := np.Parse(); err != nil {
 				return nil, err
 			}
-			out[i] = &np.Package
+			out = append(out, &np.Package)
 		}
 	}
 

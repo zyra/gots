@@ -60,8 +60,8 @@ func TypeFromExpr(t ast.Expr) reader.Type {
 
 	case *ast.SelectorExpr:
 		return reader.Type{
-			Name: v.Sel.Name,
-			From: v.X.(*ast.Ident).Name,
+			Name: v.X.(*ast.Ident).Name,
+			From: v.Sel.Name,
 		}
 
 	case *ast.InterfaceType:

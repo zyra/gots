@@ -1,6 +1,7 @@
 package reader
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 )
@@ -20,6 +21,24 @@ type Type struct {
 
 	// Whether this type is a pointer
 	Pointer bool `json:"pointer"`
+}
+
+func (t *Type) TSType() string {
+	if t.Map {
+		return fmt.Sprintf("{[key: string]: %s}", t.MapValue.TSType())
+	}
+
+	if t.Array {
+		clone := *t
+		clone.Array = false
+		return fmt.Sprintf("%s[]", clone.TSType())
+	}
+
+	if t.Generic || t.From != "" {
+		return "any"
+	}
+
+	return t.Name
 }
 
 // Opts for TypeScript type alias
@@ -72,8 +91,41 @@ type Interface struct {
 type File struct {
 	Constants  []*Constant  `json:"constants"`  // constants
 	Interfaces []*Interface `json:"interfaces"` // interfaces
-	Types      []*Type      `json:"types"`      // types
+	Types      []*TypeAlias `json:"types"`      // types
 	SourcePath string       `json:"-"`          // original source path
+}
+
+func (f *File) EachInterface(fx func(iface *Interface) (bool, error)) error {
+	for i := range f.Interfaces {
+		if ok, err := fx(f.Interfaces[i]); err != nil {
+			return err
+		} else if !ok {
+			return nil
+		}
+	}
+	return nil
+}
+
+func (f *File) EachTypeAlias(fx func(t *TypeAlias) (bool, error)) error {
+	for i := range f.Types {
+		if ok, err := fx(f.Types[i]); err != nil {
+			return err
+		} else if !ok {
+			return nil
+		}
+	}
+	return nil
+}
+
+func (f *File) EachConst(fx func(t *Constant) (bool, error)) error {
+	for i := range f.Constants {
+		if ok, err := fx(f.Constants[i]); err != nil {
+			return err
+		} else if !ok {
+			return nil
+		}
+	}
+	return nil
 }
 
 // Package represents a group of files that exist in the same file/module
@@ -95,17 +147,30 @@ func (pkg *Package) EachFile(fx func(f *File) (bool, error)) error {
 	return nil
 }
 
+// Loop through all package files
+func (pkg *Package) EachInterface(fx func(f *File, iface *Interface) (bool, error)) error {
+	return pkg.EachFile(func(f *File) (bool, error) {
+		return true, f.EachInterface(func(iface *Interface) (bool, error) {
+			return fx(f, iface)
+		})
+	})
+}
+
 // Loop through all package constants
 func (pkg *Package) EachConstant(fx func(f *File, c *Constant) (bool, error)) error {
 	return pkg.EachFile(func(f *File) (bool, error) {
-		for i := range f.Constants {
-			if ok, err := fx(f, f.Constants[i]); err != nil {
-				return false, err
-			} else if !ok {
-				return false, nil
-			}
-		}
-		return true, nil
+		return true, f.EachConst(func(t *Constant) (bool, error) {
+			return fx(f, t)
+		})
+	})
+}
+
+// Loop through all package constants
+func (pkg *Package) EachTypeAlias(fx func(f *File, t *TypeAlias) (bool, error)) error {
+	return pkg.EachFile(func(f *File) (bool, error) {
+		return true, f.EachTypeAlias(func(t *TypeAlias) (bool, error) {
+			return fx(f, t)
+		})
 	})
 }
 
@@ -189,7 +254,11 @@ func (rc *ReadConfig) Files() ([]string, error) {
 }
 
 func (rc *ReadConfig) Directories() ([]string, error) {
-	return scanDirs(rc.Dir, rc.Recursive)
+	if !rc.Recursive {
+		return []string{rc.Dir}, nil
+	}
+
+	return scanDirs(rc.Dir, true)
 }
 
 type Reader interface {

@@ -25,7 +25,7 @@ func (t *parserTestSuite) SetupSuite() {
 				Mode:        reader.AIO,
 				AIOFileName: "test_results.ts",
 			},
-			Recursive:  true,
+			Recursive:  false,
 			Transforms: nil,
 			Include:    nil,
 			Exclude:    nil,
@@ -38,8 +38,8 @@ func (t *parserTestSuite) SetupTest() {
 }
 
 func (t *parserTestSuite) TestRun() {
-	t.parser.Run()
-	t.parser.GenerateTS()
+	err := t.parser.Run()
+	t.NoError(err)
 	out := t.parser.String()
 	t.EqualValues(`export interface TestModel {
   id: string;

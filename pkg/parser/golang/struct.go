@@ -8,15 +8,7 @@ import (
 	"go/ast"
 )
 
-// Property options
-type Property = reader.Property
-
-// Struct options
-type Struct struct {
-	reader.Interface
-}
-
-func ParseStruct(spec *ast.TypeSpec) (*Struct, error) {
+func ParseStruct(spec *ast.TypeSpec) (*reader.Interface, error) {
 	s, ok := spec.Type.(*ast.StructType)
 	if !ok {
 		return nil, errors.New("invalid TypeSpec")
@@ -27,21 +19,25 @@ func ParseStruct(spec *ast.TypeSpec) (*Struct, error) {
 		return nil, ErrNotExported
 	}
 
-	st := Struct{}
+	st := reader.Interface{}
 	st.Name = itName
 
 	if s.Fields == nil || s.Fields.NumFields() == 0 {
 		return &st, nil
 	}
 
-	props := make([]*Property, 0)
+	props := make([]*reader.Property, 0)
 	for i := range s.Fields.List {
 		f := s.Fields.List[i]
-		t, err := tag.ParseTag(f.Tag.Value)
+		var t *tag.Tag
+		var err error
+		if f.Tag != nil {
+			t, err = tag.ParseTag(f.Tag.Value)
+		}
 
 		propType := TypeFromExpr(f.Type)
 
-		prop := Property{}
+		prop := reader.Property{}
 
 		if err != nil {
 			if err == tag.ErrJsonIgnored || err == tag.ErrJsonTagNotPresent || err == tag.ErrPropertyIgnored {
@@ -53,7 +49,7 @@ func ParseStruct(spec *ast.TypeSpec) (*Struct, error) {
 			} else {
 				return nil, fmt.Errorf("failed to parse tag: %v", err)
 			}
-		} else {
+		} else if t != nil {
 			if t.Type != "" {
 				propType.Name = t.Type
 				propType.From = ""
@@ -61,6 +57,8 @@ func ParseStruct(spec *ast.TypeSpec) (*Struct, error) {
 
 			prop.Name = t.Name
 			prop.Optional = t.Optional
+		} else {
+			prop.Name = spec.Name.Name
 		}
 
 		prop.Type = propType

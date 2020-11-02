@@ -8,7 +8,7 @@ import (
 func TestReadConfig_Files(t *testing.T) {
 	a := assert.New(t)
 	rc := ReadConfig{
-		Dir:       "../../example/pkg/",
+		Dir:       "../../../example/pkg/",
 		Recursive: true,
 	}
 

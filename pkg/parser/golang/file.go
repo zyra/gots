@@ -8,22 +8,18 @@ import (
 )
 
 type File struct {
-	ast        *ast.File
-	structs    []*Struct
-	interfaces []*Interface
-	types      []*TypeAlias
-	constants  []*Const
-
+	ast *ast.File
 	reader.File
 }
 
 func NewFile(file *ast.File) *File {
 	return &File{
-		ast:        file,
-		structs:    make([]*Struct, 0),
-		interfaces: make([]*Interface, 0),
-		types:      make([]*TypeAlias, 0),
-		constants:  make([]*Const, 0),
+		ast: file,
+		File: reader.File{
+			Constants:  make([]*reader.Constant, 0),
+			Interfaces: make([]*reader.Interface, 0),
+			Types:      make([]*reader.TypeAlias, 0),
+		},
 	}
 }
 
@@ -54,10 +50,9 @@ func (f *File) inspect(node ast.Node) (bool, error) {
 				if spec, ok := n.Specs[i].(*ast.ValueSpec); ok {
 					c, err := ConstFromValueSpec(spec)
 					if err != nil {
-						//return false, fmt.Errorf("failed to parse const: %v", err)
 						continue
 					}
-					f.constants = append(f.constants, c)
+					f.Constants = append(f.Constants, c)
 				}
 			}
 
@@ -84,15 +79,6 @@ func (f *File) Parse() error {
 	if err := i.Error(); err != nil {
 		return err
 	}
-
-	for _, c := range f.constants {
-		f.Constants = append(f.Constants, &c.Constant)
-	}
-
-	for _, s := range f.structs {
-		f.Interfaces = append(f.Interfaces, &s.Interface)
-	}
-
 	return nil
 }
 
@@ -101,24 +87,25 @@ func (f *File) ParseTypeSpec(spec *ast.TypeSpec) error {
 	case *ast.StructType:
 		st, err := ParseStruct(spec)
 		if err != nil {
-			return err
+			return nil
+			//return err
 		}
-		f.structs = append(f.structs, st)
+		f.Interfaces = append(f.Interfaces, st)
 		return nil
 	case *ast.InterfaceType:
 		it, err := ParseInterface(spec)
 		if err != nil {
 			return err
 		}
-		f.interfaces = append(f.interfaces, it)
+		f.Interfaces = append(f.Interfaces, it)
 		return nil
 
 	case *ast.ArrayType, *ast.MapType, *ast.Ident:
 		t := ParseTypeAlias(spec)
-		f.types = append(f.types, t)
+		f.Types = append(f.Types, t)
 		return nil
 
-	case *ast.SelectorExpr:
+	case *ast.SelectorExpr, *ast.FuncType:
 		return nil
 	}
 
