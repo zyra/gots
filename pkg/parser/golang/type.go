@@ -1,9 +1,9 @@
-package godef
+package golang
 
 import (
 	"go/ast"
 	"go/token"
-	strings "strings"
+	"strings"
 )
 
 // Package import options

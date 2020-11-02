@@ -1,7 +1,7 @@
-package godef
+package golang
 
 import (
-	fmt "fmt"
+	"fmt"
 	"go/ast"
 )
 

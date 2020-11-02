@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"github.com/zyra/gots/pkg/parser/godef"
+	"github.com/zyra/gots/pkg/parser/golang"
 	"go/ast"
 	"sync"
 )
@@ -18,13 +18,13 @@ func NewPackage(pkg *ast.Package) *Package {
 		fMtx:       new(sync.RWMutex),
 		files:      files,
 		iMtx:       new(sync.RWMutex),
-		interfaces: make([]*godef.Interface, 0),
+		interfaces: make([]*golang.Interface, 0),
 		tMtx:       new(sync.RWMutex),
-		types:      make([]*godef.TypeAlias, 0),
+		types:      make([]*golang.TypeAlias, 0),
 		sMtx:       new(sync.RWMutex),
-		structs:    make([]*godef.Struct, 0),
+		structs:    make([]*golang.Struct, 0),
 		cMtx:       new(sync.RWMutex),
-		constants:  make([]*godef.Const, 0),
+		constants:  make([]*golang.Const, 0),
 		errChan:    make(chan error, 1024),
 	}
 }
@@ -40,16 +40,16 @@ type Package struct {
 	files []*File
 
 	iMtx       *sync.RWMutex
-	interfaces []*godef.Interface
+	interfaces []*golang.Interface
 
 	tMtx  *sync.RWMutex
-	types []*godef.TypeAlias
+	types []*golang.TypeAlias
 
 	sMtx    *sync.RWMutex
-	structs []*godef.Struct
+	structs []*golang.Struct
 
 	cMtx      *sync.RWMutex
-	constants []*godef.Const
+	constants []*golang.Const
 }
 
 func (pkg *Package) Parse() {
@@ -87,25 +87,25 @@ func (pkg *Package) AddFile(it *File) {
 	pkg.fMtx.Unlock()
 }
 
-func (pkg *Package) AddInterface(it *godef.Interface) {
+func (pkg *Package) AddInterface(it *golang.Interface) {
 	pkg.iMtx.Lock()
 	pkg.interfaces = append(pkg.interfaces, it)
 	pkg.iMtx.Unlock()
 }
 
-func (pkg *Package) AddTypeAlias(it *godef.TypeAlias) {
+func (pkg *Package) AddTypeAlias(it *golang.TypeAlias) {
 	pkg.tMtx.Lock()
 	pkg.types = append(pkg.types, it)
 	pkg.tMtx.Unlock()
 }
 
-func (pkg *Package) AddConst(it *godef.Const) {
+func (pkg *Package) AddConst(it *golang.Const) {
 	pkg.cMtx.Lock()
 	pkg.constants = append(pkg.constants, it)
 	pkg.cMtx.Unlock()
 }
 
-func (pkg *Package) AddStruct(it *godef.Struct) {
+func (pkg *Package) AddStruct(it *golang.Struct) {
 	pkg.sMtx.Lock()
 	pkg.structs = append(pkg.structs, it)
 	pkg.sMtx.Unlock()

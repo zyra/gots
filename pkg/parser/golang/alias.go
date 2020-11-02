@@ -1,4 +1,4 @@
-package godef
+package golang
 
 import (
 	"go/ast"

@@ -15,6 +15,7 @@ type ParseGotsTagResult struct {
 	// Omit property even if it's exported as JSON
 	Omit bool
 }
+
 var gotsTagRgx = regexp.MustCompile(`(?i)gots:"([a-z0-9_\-,:\[\]]+)?"`)
 var gotsInnerTagRgx = regexp.MustCompile(`(?i)(type|optional|-)?:?([a-z0-9_\[\]]+)?`)
 

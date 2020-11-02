@@ -1,11 +1,11 @@
 package tsgo
 
 import (
-	"github.com/zyra/gots/pkg/parser/godef"
+	"github.com/zyra/gots/pkg/parser/golang"
 	"github.com/zyra/gots/pkg/parser/ts"
 )
 
-func NewType(in *godef.Type) ts.Type {
+func NewType(in *golang.Type) ts.Type {
 	t := ts.Type{
 		Name:    in.Name,
 		Array:   in.Array,
@@ -25,7 +25,7 @@ func NewType(in *godef.Type) ts.Type {
 	return t
 }
 
-func NewConst(in *godef.Const) *ts.Constant {
+func NewConst(in *golang.Const) *ts.Constant {
 	return &ts.Constant{
 		Name:  in.Name,
 		Type:  NewType(in.Type),

@@ -2,7 +2,7 @@ package parser
 
 import (
 	"fmt"
-	"github.com/zyra/gots/pkg/parser/godef"
+	"github.com/zyra/gots/pkg/parser/golang"
 	"go/ast"
 	"go/token"
 )
@@ -10,19 +10,19 @@ import (
 type File struct {
 	ast        *ast.File
 	pkg        *Package
-	structs    []*godef.Struct
-	interfaces []*godef.Interface
-	types      []*godef.TypeAlias
-	constants  []*godef.Const
+	structs    []*golang.Struct
+	interfaces []*golang.Interface
+	types      []*golang.TypeAlias
+	constants  []*golang.Const
 }
 
 func NewFile(file *ast.File) *File {
 	return &File{
 		ast:        file,
-		structs:    make([]*godef.Struct, 0),
-		interfaces: make([]*godef.Interface, 0),
-		types:      make([]*godef.TypeAlias, 0),
-		constants:  make([]*godef.Const, 0),
+		structs:    make([]*golang.Struct, 0),
+		interfaces: make([]*golang.Interface, 0),
+		types:      make([]*golang.TypeAlias, 0),
+		constants:  make([]*golang.Const, 0),
 	}
 }
 
@@ -51,7 +51,7 @@ func (f *File) inspect(node ast.Node) (bool, error) {
 			// 		since we need to check other props to know where the counter starts
 			for i := range n.Specs {
 				if spec, ok := n.Specs[i].(*ast.ValueSpec); ok {
-					c, err := godef.ConstFromValueSpec(spec)
+					c, err := golang.ConstFromValueSpec(spec)
 					if err != nil {
 						return false, fmt.Errorf("failed to parse const: %v", err)
 					}
@@ -85,14 +85,14 @@ func (f *File) Parse() error {
 func (f *File) ParseTypeSpec(spec *ast.TypeSpec) error {
 	switch spec.Type.(type) {
 	case *ast.StructType:
-		st, err := godef.ParseStruct(spec)
+		st, err := golang.ParseStruct(spec)
 		if err != nil {
 			return err
 		}
 		f.structs = append(f.structs, st)
 		return nil
 	case *ast.InterfaceType:
-		it, err := godef.ParseInterface(spec)
+		it, err := golang.ParseInterface(spec)
 		if err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func (f *File) ParseTypeSpec(spec *ast.TypeSpec) error {
 		return nil
 
 	case *ast.ArrayType, *ast.MapType, *ast.Ident:
-		t := godef.ParseTypeAlias(spec)
+		t := golang.ParseTypeAlias(spec)
 		f.types = append(f.types, t)
 		return nil
 
