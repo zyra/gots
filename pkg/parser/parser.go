@@ -2,7 +2,7 @@ package parser
 
 import (
 	"fmt"
-	"github.com/zyra/gots/pkg/parser/golang"
+	"github.com/zyra/gots/pkg/parser/reader"
 	"github.com/zyra/gots/pkg/statement"
 	"io/ioutil"
 	"log"
@@ -11,34 +11,16 @@ import (
 )
 
 type Parser struct {
-	*Config
+	*reader.Config
 
 	wg *sync.WaitGroup
-
-	iMtx       *sync.RWMutex
-	interfaces []*golang.Interface
-
-	tMtx  *sync.RWMutex
-	types []*golang.TypeAlias
-
-	cMtx      *sync.RWMutex
-	constants []*golang.Const
-
-	sMtx    *sync.RWMutex
-	structs []*golang.Struct
-
-	pMtx *sync.RWMutex
-	pkgs []*Package
-
-	fMtx  *sync.RWMutex
-	files []*File
 
 	pkgIndex map[string]string
 
 	tsw *statement.Writer
 }
 
-func New(config *Config) *Parser {
+func New(config *reader.Config) *Parser {
 	if !filepath.IsAbs(config.RootDir) {
 		if d, err := filepath.Abs(config.RootDir); err != nil {
 			log.Panicf("cannot convert base directory to absolute path: %s\n", err.Error())
@@ -48,20 +30,10 @@ func New(config *Config) *Parser {
 	}
 
 	return &Parser{
-		Config:     config,
-		wg:         new(sync.WaitGroup),
-		iMtx:       new(sync.RWMutex),
-		interfaces: make([]*golang.Interface, 0),
-		tMtx:       new(sync.RWMutex),
-		types:      make([]*golang.TypeAlias, 0),
-		cMtx:       new(sync.RWMutex),
-		constants:  make([]*golang.Const, 0),
-		sMtx:       new(sync.RWMutex),
-		structs:    make([]*golang.Struct, 0),
-		pMtx:       new(sync.RWMutex),
-		pkgs:       make([]*Package, 0),
-		pkgIndex:   make(map[string]string),
-		tsw:        statement.NewWriter(),
+		Config:   config,
+		wg:       new(sync.WaitGroup),
+		pkgIndex: make(map[string]string),
+		tsw:      statement.NewWriter(),
 	}
 }
 
@@ -71,47 +43,38 @@ func (p *Parser) Run() {
 }
 
 func (p *Parser) GenerateTS() {
-	p.iMtx.RLock()
-	defer p.iMtx.RUnlock()
-
-	p.cMtx.RLock()
-	defer p.cMtx.RUnlock()
-
-	p.tMtx.RLock()
-	defer p.tMtx.RUnlock()
-
-	for _, it := range p.types {
-		p.tsw.Export().Type(it.Name, statement.Literal(it.Type.Name))
-	}
-
-	var lp int
-
-	for _, it := range p.structs {
-		lp = len(it.Properties)
-
-		if lp == 0 {
-			continue
-		}
-
-		properties := make([]*statement.Statement, lp, lp)
-
-		for i, itt := range it.Properties {
-			if itt.Optional {
-				properties[i] = statement.OptionalProperty(itt.Name, itt.Type.Name)
-			} else {
-				properties[i] = statement.Property(itt.Name, itt.Type.Name)
-			}
-		}
-
-		p.tsw.Export().Interface(it.Name, properties...)
-	}
-
-	for _, it := range p.constants {
-		if it.Type == nil {
-			it.Type = &golang.Type{}
-		}
-		p.tsw.Export().Const(statement.Property(it.Name, it.Type.Name), statement.Literal(it.Value))
-	}
+	//for _, it := range p.types {
+	//	p.tsw.Export().Type(it.Name, statement.Literal(it.Type.Name))
+	//}
+	//
+	//var lp int
+	//
+	//for _, it := range p.structs {
+	//	lp = len(it.Properties)
+	//
+	//	if lp == 0 {
+	//		continue
+	//	}
+	//
+	//	properties := make([]*statement.Statement, lp, lp)
+	//
+	//	for i, itt := range it.Properties {
+	//		if itt.Optional {
+	//			properties[i] = statement.OptionalProperty(itt.Name, itt.Type.Name)
+	//		} else {
+	//			properties[i] = statement.Property(itt.Name, itt.Type.Name)
+	//		}
+	//	}
+	//
+	//	p.tsw.Export().Interface(it.Name, properties...)
+	//}
+	//
+	//for _, it := range p.constants {
+	//	if it.Type == nil {
+	//		it.Type = &golang.Type{}
+	//	}
+	//	p.tsw.Export().Const(statement.Property(it.Name, it.Type.Name), statement.Literal(it.Value))
+	//}
 }
 
 func (p *Parser) String() string {

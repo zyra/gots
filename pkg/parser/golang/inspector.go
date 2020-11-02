@@ -1,10 +1,16 @@
-package parser
+package golang
 
 import "go/ast"
 
+type InspectFn func(ast.Node) (bool, error)
+
 type Inspector struct {
-	inspect func(ast.Node) (bool, error)
+	inspect InspectFn
 	err     error
+}
+
+func NewInspector(fn InspectFn) *Inspector {
+	return &Inspector{inspect: fn}
 }
 
 func (f *Inspector) Error() error {

@@ -1,4 +1,4 @@
-package parser
+package reader
 
 // Configures what types to export
 type TypesConfig struct {

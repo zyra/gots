@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/urfave/cli/v2"
 	"github.com/zyra/gots/pkg/parser"
+	"github.com/zyra/gots/pkg/parser/reader"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -29,7 +30,7 @@ func main() {
 			Action: func(ctx *cli.Context) error {
 				o := ctx.String("outfile")
 
-				var config parser.Config
+				var config reader.Config
 
 				configPath := ctx.String("config")
 				if len(configPath) > 0 {
@@ -43,15 +44,15 @@ func main() {
 				} else {
 					config.RootDir = ctx.String("dir")
 					config.Recursive = ctx.Bool("recursive")
-					config.Types = parser.TypesConfig{
+					config.Types = reader.TypesConfig{
 						Interfaces: ctx.Bool("interfaces"),
 						Constants:  ctx.Bool("constants"),
 						Aliases:    ctx.Bool("type-aliases"),
 						Structs:    ctx.Bool("structs"),
 						Enums:      ctx.Bool("enums"),
 					}
-					config.Output = parser.Output{
-						Mode:        parser.OutputMode(ctx.String("mode")),
+					config.Output = reader.Output{
+						Mode:        reader.OutputMode(ctx.String("mode")),
 						Path:        ctx.String("output-path"),
 						AIOFileName: ctx.String("aio-file"),
 					}
@@ -141,7 +142,7 @@ func main() {
 					Name:    "mode",
 					Aliases: []string{"m"},
 					EnvVars: []string{"GOTS_OUTPUT_MODE"},
-					Value:   string(parser.Packages),
+					Value:   string(reader.Packages),
 					Usage:   "Output mode: aio, packages, or mirror",
 				},
 			},

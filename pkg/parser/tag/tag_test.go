@@ -7,7 +7,7 @@ import (
 
 func TestTagTypeFromToken(t *testing.T) {
 	//a := assert.New(t)
-	//tests := map[Type]
+	//tests := map[AliasedType]
 }
 
 func TestParseTag(t *testing.T) {

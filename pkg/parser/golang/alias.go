@@ -1,22 +1,22 @@
 package golang
 
 import (
+	"github.com/zyra/gots/pkg/parser/reader"
 	"go/ast"
 )
 
 // Type alias options
 type TypeAlias struct {
-	// Type name
-	Name string `json:"name"`
-
-	// Aliased type data
-	Type *Type `json:"type"`
+	reader.TypeAlias
 }
 
 // Parse Go type alias
 func ParseTypeAlias(spec *ast.TypeSpec) *TypeAlias {
+	t := TypeFromExpr(spec.Type)
 	return &TypeAlias{
-		Name: spec.Name.Name,
-		Type: TypeFromExpr(spec.Type),
+		TypeAlias: reader.TypeAlias{
+			Name:        spec.Name.Name,
+			AliasedType: t,
+		},
 	}
 }

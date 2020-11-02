@@ -2,6 +2,7 @@ package parser
 
 import (
 	"github.com/stretchr/testify/suite"
+	"github.com/zyra/gots/pkg/parser/reader"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,7 +10,7 @@ import (
 
 type parserTestSuite struct {
 	suite.Suite
-	config *Config
+	config *reader.Config
 	parser *Parser
 }
 
@@ -17,11 +18,11 @@ func (t *parserTestSuite) SetupSuite() {
 	if wd, err := os.Getwd(); err != nil {
 		t.FailNow("unable to get working directory")
 	} else {
-		t.config = &Config{
+		t.config = &reader.Config{
 			RootDir: filepath.Join(wd, "../../example/pkg"),
-			Types:   TypesConfig{},
-			Output: Output{
-				Mode:        AIO,
+			Types:   reader.TypesConfig{},
+			Output: reader.Output{
+				Mode:        reader.AIO,
 				AIOFileName: "test_results.ts",
 			},
 			Recursive:  true,

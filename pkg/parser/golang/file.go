@@ -1,28 +1,29 @@
-package parser
+package golang
 
 import (
 	"fmt"
-	"github.com/zyra/gots/pkg/parser/golang"
+	"github.com/zyra/gots/pkg/parser/reader"
 	"go/ast"
 	"go/token"
 )
 
 type File struct {
 	ast        *ast.File
-	pkg        *Package
-	structs    []*golang.Struct
-	interfaces []*golang.Interface
-	types      []*golang.TypeAlias
-	constants  []*golang.Const
+	structs    []*Struct
+	interfaces []*Interface
+	types      []*TypeAlias
+	constants  []*Const
+
+	reader.File
 }
 
 func NewFile(file *ast.File) *File {
 	return &File{
 		ast:        file,
-		structs:    make([]*golang.Struct, 0),
-		interfaces: make([]*golang.Interface, 0),
-		types:      make([]*golang.TypeAlias, 0),
-		constants:  make([]*golang.Const, 0),
+		structs:    make([]*Struct, 0),
+		interfaces: make([]*Interface, 0),
+		types:      make([]*TypeAlias, 0),
+		constants:  make([]*Const, 0),
 	}
 }
 
@@ -51,9 +52,10 @@ func (f *File) inspect(node ast.Node) (bool, error) {
 			// 		since we need to check other props to know where the counter starts
 			for i := range n.Specs {
 				if spec, ok := n.Specs[i].(*ast.ValueSpec); ok {
-					c, err := golang.ConstFromValueSpec(spec)
+					c, err := ConstFromValueSpec(spec)
 					if err != nil {
-						return false, fmt.Errorf("failed to parse const: %v", err)
+						//return false, fmt.Errorf("failed to parse const: %v", err)
+						continue
 					}
 					f.constants = append(f.constants, c)
 				}
@@ -77,22 +79,34 @@ func (f *File) inspect(node ast.Node) (bool, error) {
 
 // Parse file and populate type arrays
 func (f *File) Parse() error {
-	i := Inspector{inspect: f.inspect}
-	ast.Walk(&i, f.ast)
-	return i.Error()
+	i := NewInspector(f.inspect)
+	ast.Walk(i, f.ast)
+	if err := i.Error(); err != nil {
+		return err
+	}
+
+	for _, c := range f.constants {
+		f.Constants = append(f.Constants, &c.Constant)
+	}
+
+	for _, s := range f.structs {
+		f.Interfaces = append(f.Interfaces, &s.Interface)
+	}
+
+	return nil
 }
 
 func (f *File) ParseTypeSpec(spec *ast.TypeSpec) error {
 	switch spec.Type.(type) {
 	case *ast.StructType:
-		st, err := golang.ParseStruct(spec)
+		st, err := ParseStruct(spec)
 		if err != nil {
 			return err
 		}
 		f.structs = append(f.structs, st)
 		return nil
 	case *ast.InterfaceType:
-		it, err := golang.ParseInterface(spec)
+		it, err := ParseInterface(spec)
 		if err != nil {
 			return err
 		}
@@ -100,7 +114,7 @@ func (f *File) ParseTypeSpec(spec *ast.TypeSpec) error {
 		return nil
 
 	case *ast.ArrayType, *ast.MapType, *ast.Ident:
-		t := golang.ParseTypeAlias(spec)
+		t := ParseTypeAlias(spec)
 		f.types = append(f.types, t)
 		return nil
 

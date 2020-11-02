@@ -3,36 +3,17 @@ package golang
 import (
 	"errors"
 	"fmt"
+	"github.com/zyra/gots/pkg/parser/reader"
 	"github.com/zyra/gots/pkg/parser/tag"
 	"go/ast"
 )
 
 // Property options
-type Property struct {
-	// Property name
-	Name string `json:"name"`
-
-	// Property type
-	Type *Type `json:"typeOpts"`
-
-	// Whether the property is optional
-	Optional bool `json:"optional"`
-
-	// Property is inlined
-	Inline bool `json:"inline"`
-
-	// Inlined struct
-	// Populated at a later stage
-	InlinedStruct *Struct `json:"inlinedStruct"`
-}
+type Property = reader.Property
 
 // Struct options
 type Struct struct {
-	// Type name
-	Name string `json:"name"`
-
-	// Struct properties
-	Properties []*Property `json:"properties"`
+	reader.Interface
 }
 
 func ParseStruct(spec *ast.TypeSpec) (*Struct, error) {
@@ -46,49 +27,47 @@ func ParseStruct(spec *ast.TypeSpec) (*Struct, error) {
 		return nil, ErrNotExported
 	}
 
-	var props []*Property
-	if s.Fields != nil {
-		nf := s.Fields.NumFields()
-		if nf != 0 {
-			props = make([]*Property, 0, nf)
-			for i := range s.Fields.List {
-				f := s.Fields.List[i]
-				t, err := tag.ParseTag(f.Tag.Value)
+	st := Struct{}
+	st.Name = itName
 
-				propType := TypeFromExpr(f.Type)
+	if s.Fields == nil || s.Fields.NumFields() == 0 {
+		return &st, nil
+	}
 
-				prop := Property{}
+	props := make([]*Property, 0)
+	for i := range s.Fields.List {
+		f := s.Fields.List[i]
+		t, err := tag.ParseTag(f.Tag.Value)
 
-				if err != nil {
-					if err == tag.ErrJsonIgnored || err == tag.ErrJsonTagNotPresent || err == tag.ErrPropertyIgnored {
-						continue
-					}
+		propType := TypeFromExpr(f.Type)
 
-					if err == tag.ErrPropertyInlined {
-						prop.Inline = true
-					} else {
-						return nil, fmt.Errorf("failed to parse tag: %v", err)
-					}
-				} else {
-					if t.Type != "" {
-						propType.Name = t.Type
-						propType.From = nil
-					}
+		prop := Property{}
 
-					prop.Name = t.Name
-					prop.Optional = t.Optional
-				}
-
-				prop.Type = propType
-				props = append(props, &prop)
+		if err != nil {
+			if err == tag.ErrJsonIgnored || err == tag.ErrJsonTagNotPresent || err == tag.ErrPropertyIgnored {
+				continue
 			}
+
+			if err == tag.ErrPropertyInlined {
+				prop.Inline = true
+			} else {
+				return nil, fmt.Errorf("failed to parse tag: %v", err)
+			}
+		} else {
+			if t.Type != "" {
+				propType.Name = t.Type
+				propType.From = ""
+			}
+
+			prop.Name = t.Name
+			prop.Optional = t.Optional
 		}
+
+		prop.Type = propType
+		props = append(props, &prop)
 	}
 
-	st := Struct{
-		Name:       itName,
-		Properties: props,
-	}
+	st.Properties = props
 
 	return &st, nil
 }
