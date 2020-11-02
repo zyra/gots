@@ -18,7 +18,12 @@ type Property struct {
 	// Whether the property is optional
 	Optional bool `json:"optional"`
 
+	// Property is inlined
 	Inline bool `json:"inline"`
+
+	// Inlined struct
+	// Populated at a later stage
+	InlinedStruct *Struct `json:"inlinedStruct"`
 }
 
 // Struct options
