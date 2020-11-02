@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"github.com/zyra/gots/pkg/parser/godef"
 	"github.com/zyra/gots/pkg/statement"
 	"io/ioutil"
 	"log"
@@ -15,16 +16,16 @@ type Parser struct {
 	wg *sync.WaitGroup
 
 	iMtx       *sync.RWMutex
-	interfaces []*Interface
+	interfaces []*godef.Interface
 
 	tMtx  *sync.RWMutex
-	types []*TypeAlias
+	types []*godef.TypeAlias
 
 	cMtx      *sync.RWMutex
-	constants []*Const
+	constants []*godef.Const
 
 	sMtx    *sync.RWMutex
-	structs []*Struct
+	structs []*godef.Struct
 
 	pMtx *sync.RWMutex
 	pkgs []*Package
@@ -50,13 +51,13 @@ func New(config *Config) *Parser {
 		Config:     config,
 		wg:         new(sync.WaitGroup),
 		iMtx:       new(sync.RWMutex),
-		interfaces: make([]*Interface, 0),
+		interfaces: make([]*godef.Interface, 0),
 		tMtx:       new(sync.RWMutex),
-		types:      make([]*TypeAlias, 0),
+		types:      make([]*godef.TypeAlias, 0),
 		cMtx:       new(sync.RWMutex),
-		constants:  make([]*Const, 0),
+		constants:  make([]*godef.Const, 0),
 		sMtx:       new(sync.RWMutex),
-		structs:    make([]*Struct, 0),
+		structs:    make([]*godef.Struct, 0),
 		pMtx:       new(sync.RWMutex),
 		pkgs:       make([]*Package, 0),
 		pkgIndex:   make(map[string]string),
@@ -107,7 +108,7 @@ func (p *Parser) GenerateTS() {
 
 	for _, it := range p.constants {
 		if it.Type == nil {
-			it.Type = &Type{}
+			it.Type = &godef.Type{}
 		}
 		p.tsw.Export().Const(statement.Property(it.Name, it.Type.Name), statement.Literal(it.Value))
 	}

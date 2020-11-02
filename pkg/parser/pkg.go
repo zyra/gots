@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"github.com/zyra/gots/pkg/parser/godef"
 	"go/ast"
 	"sync"
 )
@@ -17,13 +18,13 @@ func NewPackage(pkg *ast.Package) *Package {
 		fMtx:       new(sync.RWMutex),
 		files:      files,
 		iMtx:       new(sync.RWMutex),
-		interfaces: make([]*Interface, 0),
+		interfaces: make([]*godef.Interface, 0),
 		tMtx:       new(sync.RWMutex),
-		types:      make([]*TypeAlias, 0),
+		types:      make([]*godef.TypeAlias, 0),
 		sMtx:       new(sync.RWMutex),
-		structs:    make([]*Struct, 0),
+		structs:    make([]*godef.Struct, 0),
 		cMtx:       new(sync.RWMutex),
-		constants:  make([]*Const, 0),
+		constants:  make([]*godef.Const, 0),
 		errChan:    make(chan error, 1024),
 	}
 }
@@ -39,16 +40,16 @@ type Package struct {
 	files []*File
 
 	iMtx       *sync.RWMutex
-	interfaces []*Interface
+	interfaces []*godef.Interface
 
 	tMtx  *sync.RWMutex
-	types []*TypeAlias
+	types []*godef.TypeAlias
 
 	sMtx    *sync.RWMutex
-	structs []*Struct
+	structs []*godef.Struct
 
 	cMtx      *sync.RWMutex
-	constants []*Const
+	constants []*godef.Const
 }
 
 func (pkg *Package) Parse() {
@@ -86,25 +87,25 @@ func (pkg *Package) AddFile(it *File) {
 	pkg.fMtx.Unlock()
 }
 
-func (pkg *Package) AddInterface(it *Interface) {
+func (pkg *Package) AddInterface(it *godef.Interface) {
 	pkg.iMtx.Lock()
 	pkg.interfaces = append(pkg.interfaces, it)
 	pkg.iMtx.Unlock()
 }
 
-func (pkg *Package) AddTypeAlias(it *TypeAlias) {
+func (pkg *Package) AddTypeAlias(it *godef.TypeAlias) {
 	pkg.tMtx.Lock()
 	pkg.types = append(pkg.types, it)
 	pkg.tMtx.Unlock()
 }
 
-func (pkg *Package) AddConst(it *Const) {
+func (pkg *Package) AddConst(it *godef.Const) {
 	pkg.cMtx.Lock()
 	pkg.constants = append(pkg.constants, it)
 	pkg.cMtx.Unlock()
 }
 
-func (pkg *Package) AddStruct(it *Struct) {
+func (pkg *Package) AddStruct(it *godef.Struct) {
 	pkg.sMtx.Lock()
 	pkg.structs = append(pkg.structs, it)
 	pkg.sMtx.Unlock()

@@ -19,7 +19,7 @@ func (p *BasePost) GetPostType() string {
 	return ""
 }
 
-// Alias for a post array
+// Name for a post array
 type Posts []*Post
 
 // Sample type that could be used to update a post via an API
