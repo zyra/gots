@@ -44,13 +44,6 @@ func main() {
 				} else {
 					config.RootDir = ctx.String("dir")
 					config.Recursive = ctx.Bool("recursive")
-					config.Types = reader.TypesConfig{
-						Interfaces: ctx.Bool("interfaces"),
-						Constants:  ctx.Bool("constants"),
-						Aliases:    ctx.Bool("type-aliases"),
-						Structs:    ctx.Bool("structs"),
-						Enums:      ctx.Bool("enums"),
-					}
 					config.Output = reader.Output{
 						Mode:        reader.OutputMode(ctx.String("mode")),
 						Path:        ctx.String("output-path"),
@@ -61,7 +54,7 @@ func main() {
 				p := parser.New(&config)
 
 				p.Run()
-				p.GenerateTS()
+
 
 				if o == "" {
 					p.Print()
@@ -104,39 +97,6 @@ func main() {
 					Usage:     "Config file",
 					EnvVars:   []string{"GOTS_CONFIG"},
 					TakesFile: true,
-				},
-				&cli.BoolFlag{
-					Name:    "interfaces",
-					EnvVars: []string{"GOTS_PARSE_INTERFACES"},
-					Value:   true,
-					Usage:   "Parse interfaces and use them in generated code where applicable",
-				},
-				&cli.BoolFlag{
-					Name:    "structs",
-					EnvVars: []string{"GOTS_PARSE_STRUCTS"},
-					Value:   true,
-					Usage:   "Parse structs and export them as TypeScript interfaces",
-				},
-				&cli.BoolFlag{
-					Name:    "constants",
-					Aliases: []string{"consts"},
-					EnvVars: []string{"GOTS_PARSE_CONSTANTS"},
-					Value:   true,
-					Usage:   "Parse and export constants",
-				},
-				&cli.BoolFlag{
-					Name:    "enums",
-					Aliases: []string{"enums"},
-					EnvVars: []string{"GOTS_PARSE_ENUMS"},
-					Value:   true,
-					Usage:   "Automatically detect enums and export them as TypeScript enums",
-				},
-				&cli.BoolFlag{
-					Name:    "type-aliases",
-					Aliases: []string{"aliases", "types"},
-					EnvVars: []string{"GOTS_PARSE_TYPE_ALIASES"},
-					Value:   true,
-					Usage:   "Parse and export type aliases",
 				},
 				&cli.StringFlag{
 					Name:    "mode",
