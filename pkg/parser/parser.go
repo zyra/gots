@@ -92,9 +92,12 @@ func (p *Parser) WriteToFile() error {
 				return err
 			}
 		}
+
+	default:
+		return fmt.Errorf("invalid output mode %s", p.Config.Output.Mode)
 	}
 
-	return fmt.Errorf("invalid output mode %s", p.Config.Output.Mode)
+	return nil
 }
 
 func (p *Parser) Print() {

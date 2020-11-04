@@ -28,8 +28,6 @@ func main() {
 			Aliases: []string{"e"},
 			Usage:   "Export definitions",
 			Action: func(ctx *cli.Context) error {
-				o := ctx.String("outfile")
-
 				var config reader.Config
 
 				configPath := ctx.String("config")
@@ -57,7 +55,7 @@ func main() {
 					return err
 				}
 
-				if o == "" {
+				if ctx.Bool("stdout") {
 					p.Print()
 				} else {
 					return p.WriteToFile()
@@ -105,6 +103,11 @@ func main() {
 					EnvVars: []string{"GOTS_OUTPUT_MODE"},
 					Value:   string(reader.Packages),
 					Usage:   "Output mode: aio, packages, or mirror",
+				},
+				&cli.BoolFlag{
+					Name: "stdout",
+					Aliases: []string{"O"},
+					Usage: "Print to stdout instead of file",
 				},
 			},
 		},
