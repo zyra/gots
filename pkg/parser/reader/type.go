@@ -7,6 +7,8 @@ type Type struct {
 	Name string `json:"name"` // Type name
 	From string `json:"from"` // Package name that contains this type
 
+	EnumValue bool   `json:"enumValue"`
+
 	Generic bool `json:"generic"` // Type is generic
 
 	Array bool `json:"array"` // Type is an array
@@ -17,6 +19,10 @@ type Type struct {
 
 	// Whether this type is a pointer
 	Pointer bool `json:"pointer"`
+}
+
+func (t *Type) IsEmpty() bool {
+	return !t.Generic && !t.Map && !t.Array && len(t.Name) == 0
 }
 
 func (t *Type) TSType() string {

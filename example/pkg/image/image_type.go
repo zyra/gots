@@ -10,3 +10,10 @@ const (
 	// Processed image
 	ImageTypeProcessed ImageType = "processed"
 )
+
+type Fooo int
+
+const (
+	Fee Fooo = iota + 1
+	Barr1
+)

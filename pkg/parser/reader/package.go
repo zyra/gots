@@ -1,57 +1,120 @@
 package reader
 
+import (
+	"go/ast"
+	"go/token"
+)
+
 // Package represents a group of files that exist in the same file/module
 type Package struct {
-	Name       string  `json:"name"`  // Package name
-	Files      []*File `json:"files"` // Files found in this package
-	SourcePath string  `json:"-"`     // original source path
+	Name  string   `json:"name"`
+	Files []string `json:"files"`
+
+	PkgAst   *ast.Package `json:"-"`
+	FilesAst []*ast.File  `json:"-"`
+
+	Consts     map[string]*Constant  `json:"constants"` // constants
+	Structs    map[string]*Interface `json:"structs"`
+	Interfaces map[string]*Interface `json:"interfaces"` // interfaces
+	Types      map[string]*TypeAlias `json:"types"`      // types
+	Enums      map[string]*Enum      `json:"enums"`      // enums
+	EnumValues map[string]*Constant  `json:"enumValues"`
+
+	Decls          []ast.Decl
+	ConstDecls     []*ast.GenDecl
+	StructDecls    []*ast.TypeSpec
+	InterfaceDecls []*ast.TypeSpec
+	TypeDecls      []*ast.TypeSpec
+
+	Path string `json:"path"` // original source path
 }
 
-// Loop through all package files
-func (pkg *Package) EachFile(fx func(f *File) (bool, error)) error {
-	for i := range pkg.Files {
-		if ok, err := fx(pkg.Files[i]); err != nil {
-			return err
-		} else if !ok {
-			return nil
+func NewPackage(path string, pkg *ast.Package) *Package {
+	p := &Package{
+		Name:       pkg.Name,
+		PkgAst:     pkg,
+		Files:      make([]string, 0, len(pkg.Files)),
+		Consts:     make(map[string]*Constant),
+		Structs:    make(map[string]*Interface),
+		Interfaces: make(map[string]*Interface),
+		Types:      make(map[string]*TypeAlias),
+		Enums:      make(map[string]*Enum),
+		EnumValues: make(map[string]*Constant),
+
+		Decls:          make([]ast.Decl, 0),
+		ConstDecls:     make([]*ast.GenDecl, 0),
+		StructDecls:    make([]*ast.TypeSpec, 0),
+		InterfaceDecls: make([]*ast.TypeSpec, 0),
+		TypeDecls:      make([]*ast.TypeSpec, 0),
+
+		Path: path,
+	}
+
+	for k, v := range pkg.Files {
+		p.FilesAst = append(p.FilesAst, v)
+		p.Files = append(p.Files, k)
+		p.Decls = append(p.Decls, v.Decls...)
+	}
+
+	// loop through file declarations
+	for _, decl := range p.Decls {
+		switch d := decl.(type) {
+		case *ast.GenDecl:
+			{
+				// Generic declaration
+
+				switch d.Tok {
+				case token.IMPORT, token.COMMENT, token.PACKAGE, token.VAR:
+					continue // TODO remove after debugging
+
+				case token.CONST:
+					{
+						// const declaration
+						p.ConstDecls = append(p.ConstDecls, d)
+					}
+
+				case token.TYPE:
+					{
+						// type declaration
+						for _, spec := range d.Specs {
+							switch spec := spec.(type) {
+							case *ast.TypeSpec:
+								if !ast.IsExported(spec.Name.Name) {
+									continue
+								}
+
+								switch spec.Type.(type) {
+								case *ast.Ident, *ast.ArrayType, *ast.SelectorExpr:
+									p.TypeDecls = append(p.TypeDecls, spec)
+								case *ast.StructType:
+									p.StructDecls = append(p.StructDecls, spec)
+								case *ast.InterfaceType:
+									p.InterfaceDecls = append(p.InterfaceDecls, spec)
+								case *ast.FuncType:
+									continue
+								default:
+									continue
+								}
+
+							default:
+								continue // TODO remove
+							}
+						}
+					}
+
+				default:
+					continue // TODO remove after debugging
+				}
+
+			}
+
+		case *ast.FuncDecl:
+			continue
+
+		default:
+			panic("TODO: REMOVE THIS")
 		}
 	}
-	return nil
-}
 
-// Loop through all package files
-func (pkg *Package) EachInterface(fx func(f *File, iface *Interface) (bool, error)) error {
-	return pkg.EachFile(func(f *File) (bool, error) {
-		return true, f.EachInterface(func(iface *Interface) (bool, error) {
-			return fx(f, iface)
-		})
-	})
-}
-
-// Loop through all package constants
-func (pkg *Package) EachConstant(fx func(f *File, c *Constant) (bool, error)) error {
-	return pkg.EachFile(func(f *File) (bool, error) {
-		return true, f.EachConst(func(t *Constant) (bool, error) {
-			return fx(f, t)
-		})
-	})
-}
-
-// Loop through all package constants
-func (pkg *Package) EachTypeAlias(fx func(f *File, t *TypeAlias) (bool, error)) error {
-	return pkg.EachFile(func(f *File) (bool, error) {
-		return true, f.EachTypeAlias(func(t *TypeAlias) (bool, error) {
-			return fx(f, t)
-		})
-	})
-}
-
-// Get all package constants
-func (pkg *Package) Constants() []*Constant {
-	ca := make([]*Constant, 0)
-	_ = pkg.EachConstant(func(f *File, c *Constant) (bool, error) {
-		ca = append(ca, c)
-		return true, nil
-	})
-	return ca
+	return p
 }

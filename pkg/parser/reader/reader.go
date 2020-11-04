@@ -8,25 +8,23 @@ import (
 // Opts for TypeScript type alias
 type TypeAlias struct {
 	Name        string `json:"name"`        // Alias name
-	AliasedType Type   `json:"aliasedType"` // Aliased type
-}
-
-// Enum value opts
-type EnumValue struct {
-	Key   string `json:"name"`  // Enum value name
-	Value string `json:"value"` // Enum value
+	AliasedType *Type   `json:"aliasedType"` // Aliased type
 }
 
 // options for TypeScript enum
 type Enum struct {
 	Name   string       `json:"name"`
-	Values []*EnumValue `json:"values"`
+	Values []*Constant `json:"values"`
 }
+
 
 type Constant struct {
 	Name  string `json:"name"`  // Constant name
-	Type  Type   `json:"type"`  // Constant type
+	Type  *Type   `json:"type"`  // Constant type
 	Value string `json:"value"` // Constant value
+
+	EnumValue bool   `json:"enumValue"` // This const defines an enum value
+	EnumName  string `json:"enumName"`  // Enum name that this const defines a value for
 }
 
 type ReadConfig struct {
@@ -106,10 +104,12 @@ func (rc *ReadConfig) Directories() ([]string, error) {
 	return scanDirs(rc.Dir, true)
 }
 
-type Reader interface {
-	// Read file(s) and generate Package objects
-	Read(config *ReadConfig) ([]*Package, error)
+// Root scope that contains uniform description of interfaces, types, constants, enums... etc
+type Spec interface {
+	Packages() []*Package // Returns the packages that were parsed
 }
+
+type ReadFn func(config *ReadConfig) (Spec, error)
 
 type WriteConfig struct {
 	Output     Output       `json:"output"`
@@ -120,5 +120,5 @@ type WriteConfig struct {
 type Writer interface {
 	// Write package(s) with the provided output config and transforms
 	// Return a map with output data for each package
-	Write(config *WriteConfig) (map[string][]byte, error)
+	Write(spec Spec, config *WriteConfig) (map[string][]byte, error)
 }

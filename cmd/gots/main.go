@@ -53,8 +53,9 @@ func main() {
 
 				p := parser.New(&config)
 
-				p.Run()
-
+				if err := p.Run(); err != nil {
+					return err
+				}
 
 				if o == "" {
 					p.Print()

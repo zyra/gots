@@ -1,7 +1,7 @@
 package account
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	prim "go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -18,7 +18,13 @@ const (
 	RoleAnonymous Role = iota
 	RoleUser
 	RoleAdmin
+
+	Hello = "world"
 )
+
+const RoleSomethingElse Role = 55
+
+const RoleSomethingNotRole = 56
 
 type Foo = int
 
@@ -34,7 +40,7 @@ const EmailStatusUnverified EmailStatus = "unverified"
 
 type Account struct {
 	// Account ID
-	ID primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty" gots:"type:string"`
+	ID prim.ObjectID `bson:"_id,omitempty" json:"id,omitempty" gots:"type:string"`
 
 	// Account holder name
 	Name string `json:"name"`

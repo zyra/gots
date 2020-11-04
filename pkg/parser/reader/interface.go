@@ -3,7 +3,7 @@ package reader
 // property options
 type Property struct {
 	Name     string `json:"name"`     // Property name
-	Type     Type   `json:"type"`     // Property type
+	Type     *Type   `json:"type"`     // Property type
 	Optional bool   `json:"optional"` // Property is optional
 
 	Inline bool `json:"inline"`

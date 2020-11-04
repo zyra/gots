@@ -10,16 +10,12 @@ import (
 func ConstFromValueSpec(spec *ast.ValueSpec) (*reader.Constant, error) {
 	cName := spec.Names[0].Name
 
-	if !ast.IsExported(cName) {
-		return nil, ErrNotExported
-	}
-
 	c := &reader.Constant{
 		Name: cName,
 	}
 
 	if len(spec.Values) == 0 {
-		return nil, fmt.Errorf("%s doesn't have a value", c.Name)
+		return c, nil
 	}
 
 	if spec.Type != nil {
@@ -29,25 +25,62 @@ func ConstFromValueSpec(spec *ast.ValueSpec) (*reader.Constant, error) {
 			c.Value = val.Value
 			return c, nil
 		case *ast.Ident:
-			c.Value = constant.Make(val.Name).String()
+			if val.Name == "iota" {
+				c.Value = "0"
+			} else {
+				c.Value = constant.Make(val.Name).String()
+			}
+			return c, nil
+		case *ast.BinaryExpr:
+			getVal := func(v interface{}) constant.Value {
+				switch xV := v.(type) {
+				case *ast.BasicLit:
+					return constant.MakeFromLiteral(xV.Value, xV.Kind, 0)
+
+				case *ast.Ident:
+					if xV.Name == "iota" {
+						// Not always accurate, but should work for most enum cases
+						return constant.MakeInt64(0)
+					}
+				}
+				return constant.MakeUnknown()
+			}
+
+			xVal := getVal(val.X)
+			yVal := getVal(val.Y)
+
+			if xVal.Kind() == constant.Unknown || yVal.Kind() == constant.Unknown {
+				return nil, fmt.Errorf("%s uses an unsupported binary op", c.Name)
+			}
+
+			bOpVal := constant.BinaryOp(xVal, val.Op, yVal)
+
+			if bOpVal.Kind() == constant.Unknown {
+				return nil, fmt.Errorf("failed to calculate binary op for %s", c.Name)
+			}
+
+			c.Value = bOpVal.String()
+			return c, nil
 		}
 
 		return nil, fmt.Errorf("%s doesn't have a value or is not supported", c.Name)
 	}
 
+	if len(spec.Values) != 1 {
+		panic("spec had more than 1 value")
+	}
+
 	switch v := spec.Values[0].(type) {
 	case *ast.CallExpr:
 		if val, ok := v.Args[0].(*ast.BasicLit); ok {
-			t := TypeFromToken(val.Kind)
-			c.Type = *t
+			c.Type = TypeFromToken(val.Kind)
 			c.Value = val.Value
 			return c, nil
 		}
 		return nil, fmt.Errorf("unhandled const value type: %t", spec.Values[0])
 
 	case *ast.BasicLit:
-		t := TypeFromToken(v.Kind)
-		c.Type = *t
+		c.Type = TypeFromToken(v.Kind)
 		c.Value = v.Value
 		return c, nil
 

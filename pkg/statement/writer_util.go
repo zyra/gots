@@ -93,3 +93,7 @@ func (w *Writer) Const(prop *Statement, value *Statement) *Writer {
 func (w *Writer) Type(name string, value *Statement) *Writer {
 	return w.AppendStatement(Type(name, value))
 }
+
+func (w *Writer) Enum(name string, values ...*Statement) *Writer {
+	return w.AppendStatement(Enum(name, values...))
+}

@@ -1,5 +1,7 @@
 package statement
 
+import "fmt"
+
 // Create a statement with the provided statements as it's children
 func Group(children ...*Statement) *Statement {
 	return NewStatementWithChildren(children)
@@ -17,6 +19,22 @@ func Interface(name string, properties ...*Statement) *Statement {
 
 	s := NewStatementWithChildren([]*Statement{b})
 	s.Prefix = "interface "
+	s.Value = name
+	return s
+}
+
+func EnumValue(name string, value *Statement) *Statement {
+	g := Group(Literal(name), value)
+	g.Separator = " = "
+	return g
+}
+
+func Enum(name string, values ...*Statement) *Statement {
+	b := Block(values...)
+	b.Separator = ",\n  "
+
+	s := NewStatementWithChildren([]*Statement{b})
+	s.Prefix = "enum "
 	s.Value = name
 	return s
 }
@@ -137,6 +155,10 @@ func Namespace(name string) *Statement {
 	s := NewStatementWithValue(name)
 	s.Prefix = "namespace "
 	return s
+}
+
+func LiteralString(value string) *Statement {
+	return Literal(fmt.Sprintf(`"%s"`, value))
 }
 
 func Literal(value string) *Statement {

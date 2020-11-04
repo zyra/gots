@@ -5,7 +5,9 @@ type File struct {
 	Constants  []*Constant  `json:"constants"`  // constants
 	Interfaces []*Interface `json:"interfaces"` // interfaces
 	Types      []*TypeAlias `json:"types"`      // types
-	SourcePath string       `json:"-"`          // original source path
+	Enums      []*Enum      `json:"enums"`      // enums
+	EnumValues []*Constant `json:"enumValues"`
+	SourcePath string       `json:"sourcePath"` // original source path
 }
 
 func (f *File) EachInterface(fx func(iface *Interface) (bool, error)) error {

@@ -23,9 +23,10 @@ func (t *parserTestSuite) SetupSuite() {
 			Types:   reader.TypesConfig{},
 			Output: reader.Output{
 				Mode:        reader.AIO,
+				Path:        "test",
 				AIOFileName: "test_results.ts",
 			},
-			Recursive:  false,
+			Recursive:  true,
 			Transforms: nil,
 			Include:    nil,
 			Exclude:    nil,
@@ -40,6 +41,7 @@ func (t *parserTestSuite) SetupTest() {
 func (t *parserTestSuite) TestRun() {
 	err := t.parser.Run()
 	t.NoError(err)
+	t.NoError(t.parser.WriteToFile())
 	out := t.parser.String()
 	t.EqualValues(`export interface TestModel {
   id: string;

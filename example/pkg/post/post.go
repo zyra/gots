@@ -20,7 +20,7 @@ func (p *BasePost) GetPostType() string {
 }
 
 // Key for a post array
-type Posts []*Post
+type Posts []Post
 
 // Sample type that could be used to update a post via an API
 type NewPostParams struct {

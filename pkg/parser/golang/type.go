@@ -29,14 +29,18 @@ func TypeFromToken(t token.Token) *reader.Type {
 }
 
 // Returns a Type with the given name
-func TypeFromName(n string) reader.Type {
-	return reader.Type{Name: n}
+func TypeFromName(n string) *reader.Type {
+	return &reader.Type{Name: n}
 }
 
 // Parses ast.Expr and returns a Type
-func TypeFromExpr(t ast.Expr) reader.Type {
+func TypeFromExpr(t ast.Expr) *reader.Type {
 	switch v := t.(type) {
 	case *ast.Ident:
+		if v.Name == "byte" {
+			return &reader.Type{Generic: true}
+		}
+
 		return TypeFromName(v.Name)
 
 	case *ast.StarExpr:
@@ -46,28 +50,32 @@ func TypeFromExpr(t ast.Expr) reader.Type {
 
 	case *ast.MapType:
 		k, vv := TypeFromExpr(v.Key), TypeFromExpr(v.Value)
-		return reader.Type{
+		return &reader.Type{
 			Map:      true,
-			MapKey:   &k,
-			MapValue: &vv,
+			MapKey:   k,
+			MapValue: vv,
 		}
 
 	case *ast.ArrayType:
-		return reader.Type{
+		if v, ok := v.Elt.(*ast.Ident); ok && v.Name == "byte" {
+			return &reader.Type{Generic: true}
+		}
+
+		return &reader.Type{
 			Name:  TypeFromExpr(v.Elt).Name,
 			Array: true,
 		}
 
 	case *ast.SelectorExpr:
-		return reader.Type{
-			Name: v.X.(*ast.Ident).Name,
-			From: v.Sel.Name,
+		return &reader.Type{
+			Name: v.Sel.Name,
+			From: v.X.(*ast.Ident).Name,
 		}
 
 	case *ast.InterfaceType:
-		return reader.Type{Generic: true}
+		return &reader.Type{Generic: true}
 
 	default:
-		return reader.Type{Generic: true}
+		return &reader.Type{Generic: true}
 	}
 }

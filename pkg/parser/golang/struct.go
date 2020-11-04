@@ -26,9 +26,10 @@ func ParseStruct(spec *ast.TypeSpec) (*reader.Interface, error) {
 		return &st, nil
 	}
 
-	props := make([]*reader.Property, 0)
+	props := make([]*reader.Property, 0, s.Fields.NumFields())
 	for i := range s.Fields.List {
 		f := s.Fields.List[i]
+
 		var t *tag.Tag
 		var err error
 		if f.Tag != nil {
@@ -36,8 +37,12 @@ func ParseStruct(spec *ast.TypeSpec) (*reader.Interface, error) {
 		}
 
 		propType := TypeFromExpr(f.Type)
+		if t != nil && len(t.Type) > 0 {
+			propType.Name = t.Type
+		}
 
-		prop := reader.Property{}
+		inline := false
+		optional := false
 
 		if err != nil {
 			if err == tag.ErrJsonIgnored || err == tag.ErrJsonTagNotPresent || err == tag.ErrPropertyIgnored {
@@ -45,24 +50,40 @@ func ParseStruct(spec *ast.TypeSpec) (*reader.Interface, error) {
 			}
 
 			if err == tag.ErrPropertyInlined {
-				prop.Inline = true
+				inline = true
 			} else {
 				return nil, fmt.Errorf("failed to parse tag: %v", err)
 			}
-		} else if t != nil {
-			if t.Type != "" {
+		}
+
+		if t != nil {
+			if len(t.Type) > 0 {
 				propType.Name = t.Type
 				propType.From = ""
 			}
 
-			prop.Name = t.Name
-			prop.Optional = t.Optional
-		} else {
-			prop.Name = spec.Name.Name
+			if t.Optional {
+				optional = t.Optional
+			}
 		}
 
-		prop.Type = propType
-		props = append(props, &prop)
+		for _, n := range f.Names {
+			if !ast.IsExported(n.Name) {
+				continue
+			}
+			prop := reader.Property{
+				Name:     n.Name,
+				Type:     propType,
+				Optional: optional,
+				Inline:   inline,
+			}
+
+			if t != nil && len(t.Name) > 0 {
+				prop.Name = t.Name
+			}
+
+			props = append(props, &prop)
+		}
 	}
 
 	st.Properties = props
