@@ -12,7 +12,7 @@ import (
 	"path"
 )
 
-var AppVersion = "0.0.1"
+var AppVersion = "0.2.0"
 
 func main() {
 	app := cli.NewApp()
