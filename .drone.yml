@@ -6,71 +6,17 @@ name: default
 clone:
   depth: 1
 
-volumes:
-- name: dockersock
-  host:
-    path: /var/run/docker.sock
-
-x-docker-step: &docker-step
-  image: docker
-  volumes:
-  - name: dockersock
-    path: /var/run/docker.sock
-  environment:
-    BUILD_TAG: ${DRONE_BRANCH}-${DRONE_COMMIT}
-    DOCKER_USERNAME:
-      from_secret: DOCKER_USERNAME
-    DOCKER_PASSWORD:
-      from_secret: DOCKER_PASSWORD
-
-x-docker-auth:
-- &docker-auth docker login harbor.zyra.ca -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-
-
 steps:
 - name: Test
-  image: golang:1.13-alpine
+  image: golang:1.15-alpine
   when:
     event: push
   commands:
   - apk add gcc musl-dev
-  - go test -mod vendor ./parser/...
-  - go test -mod vendor ./typescript/...
-
-- name: Build docker image
-  <<: *docker-step
-  commands:
-  - docker build -t harbor.zyra.ca/public/gots:$BUILD_TAG .
-
-- name: Push docker image
-  <<: *docker-step
-  commands:
-  - *docker-auth
-  - docker push harbor.zyra.ca/public/gots:$BUILD_TAG
-
-- name: Push latest docker image
-  <<: *docker-step
-  when:
-    branch:
-    - master
-  commands:
-  - *docker-auth
-  - docker tag harbor.zyra.ca/public/gots:$BUILD_TAG harbor.zyra.ca/public/gots:latest
-  - docker push harbor.zyra.ca/public/gots:latest
-
-- name: Push version tagged image
-  <<: *docker-step
-  when:
-    event:
-    - tag
-  commands:
-  - *docker-auth
-  - docker tag harbor.zyra.ca/public/gots:$BUILD_TAG harbor.zyra.ca/public/gots:$DRONE_TAG
-  - docker push harbor.zyra.ca/public/gots:$DRONE_TAG
-
+  - go test -mod vendor ./...
 
 - name: Build binaries
-  image: golang:1.13-alpine
+  image: golang:1.15-alpine
   when:
     event:
     - tag
@@ -97,6 +43,6 @@ steps:
     - sha512
 ---
 kind: signature
-hmac: a7894949813f0d5a3280dc0264284b2b152c2453ffceb58b8d38e999459d4dd8
+hmac: cf137f1b661efff57328c87c254c758fa27bcfb40f34b05c63975a680bea2ddf
 
 ...
