@@ -21,8 +21,9 @@ steps:
     event:
     - tag
   commands:
-  - apk add git make
+  - apk add git make upx
   - make build -j$(nproc)
+  - make compress -j$(nproc)
 
 - name: Publish binaries to Github
   image: plugins/github-release
@@ -43,6 +44,6 @@ steps:
     - sha512
 ---
 kind: signature
-hmac: cf137f1b661efff57328c87c254c758fa27bcfb40f34b05c63975a680bea2ddf
+hmac: dd6eebc7795bd809dd5cc006aa5a28b114e7b901b369f5a7a171e7f40431d565
 
 ...
